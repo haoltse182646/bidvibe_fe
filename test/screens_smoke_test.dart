@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:bidvibe/store.dart';
+import 'package:bidvibe/main.dart';
 import 'package:bidvibe/screens/auth/auth_login.dart';
 import 'package:bidvibe/screens/auth/auth_register.dart';
 import 'package:bidvibe/screens/bidder/bidder_shell.dart';
@@ -57,8 +58,10 @@ void main() {
     addTearDown(t.view.reset);
     hook();
     if (loginAs != null) s.login(loginAs, '123456');
-    await t.pumpWidget(ChangeNotifierProvider<AppStore>.value(value: s, child: MaterialApp(home: w)));
-    await t.pump(const Duration(milliseconds: 1100)); // qua ít nhất một nhịp tick
+    await t.pumpWidget(ChangeNotifierProvider<AppStore>.value(
+        value: s, child: MaterialApp(home: w)));
+    await t
+        .pump(const Duration(milliseconds: 1100)); // qua ít nhất một nhịp tick
     expect(errors, isEmpty, reason: '${w.runtimeType}');
     await t.pumpWidget(const SizedBox()); // dọn cây widget
   }
@@ -70,17 +73,44 @@ void main() {
     await show(t, const AuthRegisterScreen());
   });
 
+  testWidgets('Chọn vai trò demo mở prototype tương ứng', (t) async {
+    await t.pumpWidget(ChangeNotifierProvider<AppStore>.value(
+        value: s, child: const MaterialApp(home: RootShell())));
+    expect(find.byType(AuthLoginScreen), findsOneWidget);
+    await t.tap(find.text('Người mua'));
+    await t.pumpAndSettle();
+    expect(find.byType(BidderShell), findsOneWidget);
+  });
+
   testWidgets('Bidder: shell + chi tiết ở mọi trạng thái', (t) async {
     await show(t, const BidderShell(), loginAs: bidder);
-    for (final id in ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10']) {
+    for (final id in [
+      'a1',
+      'a2',
+      'a3',
+      'a4',
+      'a5',
+      'a6',
+      'a7',
+      'a8',
+      'a9',
+      'a10'
+    ]) {
       await show(t, BidderDetailScreen(auctionId: id), loginAs: bidder);
     }
     await show(t, const BidderPaymentScreen(auctionId: 'a7'), loginAs: bidder);
-    await show(t, const BidderDoneScreen(auctionId: 'a8'), loginAs: bidder); // đã giao, chờ xác nhận
-    await show(t, const BidderDoneScreen(auctionId: 'a9'), loginAs: bidder); // hoàn tất
-    await show(t, const BidderDoneScreen(auctionId: 'a10', justPaid: true), loginAs: bidder);
+    await show(t, const BidderDoneScreen(auctionId: 'a8'),
+        loginAs: bidder); // đã giao, chờ xác nhận
+    await show(t, const BidderDoneScreen(auctionId: 'a9'),
+        loginAs: bidder); // hoàn tất
+    await show(t, const BidderDoneScreen(auctionId: 'a10', justPaid: true),
+        loginAs: bidder);
     await show(t, const CustomerChatbotScreen(), loginAs: bidder);
-    await show(t, const CustomerDisputeScreen(source: 'bidder', title: 'Máy chơi game', auctionId: 'a8'), loginAs: bidder);
+    await show(
+        t,
+        const CustomerDisputeScreen(
+            source: 'bidder', title: 'Máy chơi game', auctionId: 'a8'),
+        loginAs: bidder);
   });
 
   testWidgets('Bidder: tab Hồ sơ hiển thị đơn hàng', (t) async {
@@ -89,7 +119,8 @@ void main() {
     addTearDown(t.view.reset);
     hook();
     s.login(bidder, '123456');
-    await t.pumpWidget(ChangeNotifierProvider<AppStore>.value(value: s, child: const MaterialApp(home: BidderShell())));
+    await t.pumpWidget(ChangeNotifierProvider<AppStore>.value(
+        value: s, child: const MaterialApp(home: BidderShell())));
     await t.tap(find.text('Hồ sơ'));
     await t.pump(const Duration(milliseconds: 300));
     expect(find.text('Đơn hàng của tôi'), findsOneWidget);
@@ -98,7 +129,13 @@ void main() {
   });
 
   testWidgets('Seller: mỗi gian hàng đều có dữ liệu ở mọi tab', (t) async {
-    for (final email in ['long@sneakersg.vn', 'ha@phocoxua.vn', 'bao@retroaudio.vn', 'hai@retrocamera.vn', 'hoa@caonguyenxua.vn']) {
+    for (final email in [
+      'long@sneakersg.vn',
+      'ha@phocoxua.vn',
+      'bao@retroaudio.vn',
+      'hai@retrocamera.vn',
+      'hoa@caonguyenxua.vn'
+    ]) {
       s.logout();
       await show(t, const SellerShell(), loginAs: email);
     }
@@ -106,26 +143,34 @@ void main() {
     s.login('bao@retroaudio.vn', '123456');
     await show(t, SellerEditScreen(listingId: 'Lr2')); // cần bổ sung hồ sơ
     await show(t, SellerEditScreen(listingId: 'Lr1')); // live, còn sửa được?
-    await show(t, const CustomerDisputeScreen(source: 'seller', title: 'x', listingId: 'Lr8'));
+    await show(
+        t,
+        const CustomerDisputeScreen(
+            source: 'seller', title: 'x', listingId: 'Lr8'));
   });
 
   testWidgets('Appraiser & Warehouse', (t) async {
     await show(t, const AppraiserShell(), loginAs: 'khoa.tran@bidvibe.vn');
-    await show(t, const AppraiserDetailScreen(itemId: 'p1'), loginAs: 'khoa.tran@bidvibe.vn');
-    await show(t, const AppraiserDetailScreen(itemId: 'p2'), loginAs: 'khoa.tran@bidvibe.vn'); // needinfo
+    await show(t, const AppraiserDetailScreen(itemId: 'p1'),
+        loginAs: 'khoa.tran@bidvibe.vn');
+    await show(t, const AppraiserDetailScreen(itemId: 'p2'),
+        loginAs: 'khoa.tran@bidvibe.vn'); // needinfo
     await show(t, const WarehouseBoardScreen(), loginAs: 'anh.pham@bidvibe.vn');
     for (final w in s.warehouseShipments) {
-      await show(t, WarehouseDetailScreen(id: w.id), loginAs: 'anh.pham@bidvibe.vn');
+      await show(t, WarehouseDetailScreen(id: w.id),
+          loginAs: 'anh.pham@bidvibe.vn');
     }
   });
 
   testWidgets('Admin: shell, cờ, tranh chấp, nhật ký', (t) async {
     await show(t, const AdminShell(), loginAs: 'admin@bidvibe.vn');
     for (final f in s.flags) {
-      await show(t, AdminFlagDetailScreen(flagId: f.id), loginAs: 'admin@bidvibe.vn');
+      await show(t, AdminFlagDetailScreen(flagId: f.id),
+          loginAs: 'admin@bidvibe.vn');
     }
     for (final d in s.disputes) {
-      await show(t, AdminDisputeDetailScreen(disputeId: d.id), loginAs: 'admin@bidvibe.vn');
+      await show(t, AdminDisputeDetailScreen(disputeId: d.id),
+          loginAs: 'admin@bidvibe.vn');
     }
     await show(t, const AdminAuditScreen(), loginAs: 'admin@bidvibe.vn');
   });
