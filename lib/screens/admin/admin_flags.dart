@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người C - làm màn hình AdminFlagsScreen
 class AdminFlagsScreen extends StatelessWidget {
   const AdminFlagsScreen({super.key});
 
@@ -10,7 +9,6 @@ class AdminFlagsScreen extends StatelessWidget {
   }
 }
 
-// TODO: Người C - làm màn hình AdminFlagDetailScreen
 class AdminFlagDetailScreen extends StatelessWidget {
   final String flagId;
   const AdminFlagDetailScreen({super.key, required this.flagId});

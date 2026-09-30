@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người A - làm màn hình BidderHomeScreen
 class BidderHomeScreen extends StatelessWidget {
   const BidderHomeScreen({super.key});
 

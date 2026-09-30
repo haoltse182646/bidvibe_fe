@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người D - làm màn hình WarehouseDetailScreen
 class WarehouseDetailScreen extends StatelessWidget {
   final String id;
   const WarehouseDetailScreen({super.key, required this.id});

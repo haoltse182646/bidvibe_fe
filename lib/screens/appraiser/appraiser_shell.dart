@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người B - làm màn hình AppraiserShell
 class AppraiserShell extends StatelessWidget {
   const AppraiserShell({super.key});
 

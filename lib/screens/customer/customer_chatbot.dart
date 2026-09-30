@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người C - làm màn hình CustomerChatbotScreen
 class CustomerChatbotScreen extends StatelessWidget {
   const CustomerChatbotScreen({super.key});
 

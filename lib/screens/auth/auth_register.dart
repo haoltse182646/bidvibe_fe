@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người D - làm màn hình AuthRegisterScreen
 class AuthRegisterScreen extends StatelessWidget {
   const AuthRegisterScreen({super.key});
 

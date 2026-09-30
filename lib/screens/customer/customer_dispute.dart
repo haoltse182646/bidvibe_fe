@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người C - làm màn hình CustomerDisputeScreen
 class CustomerDisputeScreen extends StatelessWidget {
   final String source;
   final String title;

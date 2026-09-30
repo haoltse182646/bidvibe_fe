@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người D - làm màn hình WarehouseShell
 class WarehouseShell extends StatelessWidget {
   const WarehouseShell({super.key});
 

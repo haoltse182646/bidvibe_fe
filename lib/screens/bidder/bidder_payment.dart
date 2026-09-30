@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người A - làm màn hình BidderPaymentScreen
 class BidderPaymentScreen extends StatelessWidget {
   final String auctionId;
   const BidderPaymentScreen({super.key, required this.auctionId});

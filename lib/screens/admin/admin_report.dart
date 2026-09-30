@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người C - làm màn hình AdminReportScreen
 class AdminReportScreen extends StatelessWidget {
   const AdminReportScreen({super.key});
 

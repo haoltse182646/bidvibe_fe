@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người C - làm màn hình AdminDisputesScreen
 class AdminDisputesScreen extends StatelessWidget {
   const AdminDisputesScreen({super.key});
 
@@ -10,7 +9,6 @@ class AdminDisputesScreen extends StatelessWidget {
   }
 }
 
-// TODO: Người C - làm màn hình AdminDisputeDetailScreen
 class AdminDisputeDetailScreen extends StatelessWidget {
   final String disputeId;
   const AdminDisputeDetailScreen({super.key, required this.disputeId});

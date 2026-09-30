@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// TODO: Người C - làm màn hình AdminAuditScreen
 class AdminAuditScreen extends StatelessWidget {
   const AdminAuditScreen({super.key});
 
