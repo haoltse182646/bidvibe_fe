@@ -1,4 +1,4 @@
-# bidvibe_fe
+# bidvibe
 
 A new Flutter project.
 
