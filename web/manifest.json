@@ -1,6 +1,6 @@
 {
-    "name": "bidvibe_fe",
-    "short_name": "bidvibe_fe",
+    "name": "bidvibe",
+    "short_name": "bidvibe",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

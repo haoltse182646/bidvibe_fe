@@ -1,4 +1,4 @@
-package com.example.bidvibe_fe
+package com.example.bidvibe
 
 import io.flutter.embedding.android.FlutterActivity
 
