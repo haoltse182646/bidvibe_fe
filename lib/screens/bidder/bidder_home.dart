@@ -111,7 +111,7 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 0.72),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, mainAxisExtent: 250),
                     delegate: SliverChildBuilderDelegate((context, i) => _AuctionCard(auction: items[i]), childCount: items.length),
                   ),
                 ),
@@ -144,8 +144,7 @@ class _AuctionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 16 / 11,
+              Expanded(
                 child: Stack(
                   children: [
                     Positioned.fill(child: Container(color: categoryTileColor(auction.cat), alignment: Alignment.center, child: Icon(_iconFor(auction.cat), size: 48, color: AppColors.neutralFg))),

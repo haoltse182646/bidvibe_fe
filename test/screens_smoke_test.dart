@@ -80,6 +80,14 @@ void main() {
     await t.tap(find.text('Người mua'));
     await t.pumpAndSettle();
     expect(find.byType(BidderShell), findsOneWidget);
+
+    // Đổi vai trò = đăng xuất rồi chọn lại.
+    await t.tap(find.text('Đăng xuất'));
+    await t.pumpAndSettle();
+    expect(find.byType(AuthLoginScreen), findsOneWidget);
+    await t.tap(find.text('Kho vận'));
+    await t.pumpAndSettle();
+    expect(find.byType(WarehouseBoardScreen), findsOneWidget);
   });
 
   testWidgets('Bidder: shell + chi tiết ở mọi trạng thái', (t) async {

@@ -34,8 +34,8 @@ class BidVibeApp extends StatelessWidget {
 
 /// Vỏ ngoài cùng: chưa đăng nhập thì hiện màn Đăng nhập; đã đăng nhập thì
 /// vai trò của tài khoản quyết định màn hình chính. Thanh DEMO phía trên
-/// chỉ phục vụ trình diễn: chuyển nhanh sang tài khoản mẫu của vai trò khác
-/// hoặc đăng xuất (trong sản phẩm thật sẽ không có thanh này).
+/// chỉ phục vụ trình diễn: hiện vai trò đang xem và nút đăng xuất để quay về
+/// màn chọn vai trò (trong sản phẩm thật sẽ không có thanh này).
 class RootShell extends StatelessWidget {
   const RootShell({super.key});
 
@@ -46,7 +46,7 @@ class RootShell extends StatelessWidget {
     if (user == null) return const AuthLoginScreen();
 
     return Scaffold(
-      appBar: RoleSwitcherBar(current: user.role, onSelect: store.switchDemoRole, onLogout: store.logout),
+      appBar: DemoRoleBar(roleLabel: user.roleLabel, onLogout: store.logout),
       body: SafeArea(top: false, child: _body(user.role)),
     );
   }
