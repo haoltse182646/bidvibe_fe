@@ -44,13 +44,10 @@ class _WarehouseBoardScreenState extends State<WarehouseBoardScreen> {
           const Text('KHO VẬN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.muted, letterSpacing: 0.5)),
           const Text('Đơn đang xử lý', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
+          GridView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.9,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 8, crossAxisSpacing: 8, mainAxisExtent: 96),
             children: colDefs.map((c) {
               final n = store.warehouseShipments.where((w) => _colMatch(c.$1, w.status)).length;
               final on = colFilter == c.$1;

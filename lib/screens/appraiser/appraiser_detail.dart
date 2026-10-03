@@ -19,6 +19,7 @@ class _AppraiserDetailScreenState extends State<AppraiserDetailScreen> {
   bool moreInfoOpen = false;
   final reasonCtrl = TextEditingController();
   final Map<String, bool> moreSel = {'photos': false, 'receipt': false, 'serial': false};
+  bool _leaving = false;
 
   @override
   void dispose() {
@@ -31,10 +32,14 @@ class _AppraiserDetailScreenState extends State<AppraiserDetailScreen> {
     final store = context.watch<AppStore>();
     final it = store.appraisalQueue.where((x) => x.id == widget.itemId).toList();
     if (it.isEmpty) {
-      // Đã được duyệt/từ chối từ chính màn này — quay lại hàng chờ.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).pop();
-      });
+      // Đã được duyệt/từ chối từ chính màn này — quay lại hàng chờ. Chỉ pop
+      // một lần: store rebuild mỗi giây, pop thêm sẽ đóng luôn màn gốc.
+      if (!_leaving) {
+        _leaving = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).pop();
+        });
+      }
       return const Scaffold(body: SizedBox.shrink());
     }
     final d = it.first;

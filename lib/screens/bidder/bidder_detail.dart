@@ -152,7 +152,7 @@ class BidderDetailScreen extends StatelessWidget {
                   const Expanded(child: Text('DEMO', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.muted, letterSpacing: 0.5))),
                   OutlinedButton(onPressed: () => store.demoForceOutbid(a.id), child: const Text('Mô phỏng bị vượt giá', style: TextStyle(fontSize: 12))),
                   const SizedBox(width: 8),
-                  OutlinedButton(onPressed: () => _demoRush(a), child: const Text('Còn 10 giây', style: TextStyle(fontSize: 12))),
+                  OutlinedButton(onPressed: () => store.demoEndSoon(a.id), child: const Text('Còn 10 giây', style: TextStyle(fontSize: 12))),
                 ],
               ),
             ),
@@ -334,10 +334,6 @@ class BidderDetailScreen extends StatelessWidget {
     if (d < 3600) return '${d ~/ 60} phút trước';
     if (d < 86400) return '${d ~/ 3600} giờ trước';
     return '${d ~/ 86400} ngày trước';
-  }
-
-  void _demoRush(Auction a) {
-    a.endsAt = DateTime.now().add(const Duration(seconds: 10));
   }
 
   void _openReport(BuildContext context, Auction a) {
