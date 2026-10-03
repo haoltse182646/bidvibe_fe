@@ -54,13 +54,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Text('Dữ liệu trực tiếp', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.successStrong)),
           ]),
           const SizedBox(height: 14),
-          GridView.count(
-            crossAxisCount: 2,
+          GridView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.35,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, mainAxisExtent: 148),
             children: [
               const _Kpi(label: 'Doanh thu nền tảng', value: '142,3 tr ₫', delta: '+12,4% so tuần trước', color: AppColors.successStrong),
               _Kpi(label: 'Phiên đang hoạt động', value: '${store.liveAuctionsCount}', delta: '${store.endingIn24hCount} phiên kết thúc 24h tới', color: AppColors.muted),
@@ -214,11 +211,11 @@ class _Kpi extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+          Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(height: 6),
           Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
           const SizedBox(height: 4),
-          Text(delta, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
+          Text(delta, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
         ],
       ),
     );
