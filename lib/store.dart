@@ -508,7 +508,7 @@ class AppStore extends ChangeNotifier {
         title: title,
         cat: cat,
         seller: myShop,
-        ago: 'Vừa xong',
+        ago: 'vừa xong',
         start: start,
         photos: photos,
         desc: desc.isEmpty ? 'Người bán chưa nhập mô tả.' : desc,
@@ -893,6 +893,16 @@ class AppStore extends ChangeNotifier {
     final a = _auction(auctionId);
     if (a == null || a.ended || a.paused) return;
     _botBid(a, DateTime.now(), force: true);
+    notifyListeners();
+  }
+
+  /// Rút thời gian còn lại xuống 10 giây và dừng bot của phiên này, để người
+  /// demo không bị vượt giá vào phút chót (nút "Còn 10 giây").
+  void demoEndSoon(String auctionId) {
+    final a = _auction(auctionId);
+    if (a == null || a.ended || a.paused) return;
+    a.botBudget = 0;
+    a.endsAt = DateTime.now().add(const Duration(seconds: 10));
     notifyListeners();
   }
 
@@ -1624,8 +1634,8 @@ class AppStore extends ChangeNotifier {
       AppraisalItem(id: 'p1', listingId: 'Lp3', title: 'Chén trà men ngọc thời Nguyễn', cat: 'antique', seller: 'Phố Cổ Collectibles', ago: '20 phút trước', start: 3500000, photos: 3, desc: 'Chén trà men ngọc, đường kính 8cm. Người bán khai báo nguyên vẹn, không sứt mẻ.', cond: 'Nguyên vẹn', sellerRating: '4,9', sellerStats: '63 phiên đã bán'),
       AppraisalItem(id: 'p2', listingId: 'Lr2', title: 'Máy nghe nhạc cassette Nhật Bản, 1988', cat: 'elec', seller: 'Retro Audio HN', ago: '1 giờ trước', start: 1800000, photos: 4, desc: 'Còn chạy băng, cửa băng hơi lỏng. Đủ dây sạc gốc.', cond: 'Đã qua sử dụng', sellerRating: '4,7', sellerStats: '31 phiên đã bán', status: 'needinfo', requests: [requestLabels['photos']!, requestLabels['serial']!]),
       AppraisalItem(id: 'p3', listingId: 'Ls3', title: 'Giày bóng rổ cổ điển, size 44', cat: 'shoes', seller: 'Sneaker Sài Gòn', ago: '2 giờ trước', start: 2900000, photos: 2, desc: 'Đế có dấu hiệu ố vàng nhẹ theo thời gian, chưa qua sửa chữa.', cond: 'Như mới', sellerRating: '4,9', sellerStats: '47 phiên đã bán'),
-      AppraisalItem(id: 'p4', listingId: 'Ln1', title: 'Vòng cổ bạc chạm khắc dân tộc', cat: 'antique', seller: 'Cao Nguyên Xưa', ago: 'Hôm qua', start: 2200000, photos: 3, desc: 'Người bán mới có ít phiên, đây là phiên ký gửi vòng cổ đầu tiên.', cond: 'Đã qua sử dụng', sellerRating: 'Chưa có', sellerStats: 'Tài khoản mới'),
-      AppraisalItem(id: 'p5', listingId: 'Lr7', title: 'Tai nghe không dây phiên bản giới hạn', cat: 'elec', seller: 'Retro Audio HN', ago: 'Hôm qua', start: 3100000, photos: 4, desc: 'Còn bảo hành hãng 3 tháng, hộp hơi móp góc.', cond: 'Như mới', sellerRating: '4,7', sellerStats: '31 phiên đã bán'),
+      AppraisalItem(id: 'p4', listingId: 'Ln1', title: 'Vòng cổ bạc chạm khắc dân tộc', cat: 'antique', seller: 'Cao Nguyên Xưa', ago: 'hôm qua', start: 2200000, photos: 3, desc: 'Người bán mới có ít phiên, đây là phiên ký gửi vòng cổ đầu tiên.', cond: 'Đã qua sử dụng', sellerRating: 'Chưa có', sellerStats: 'Tài khoản mới'),
+      AppraisalItem(id: 'p5', listingId: 'Lr7', title: 'Tai nghe không dây phiên bản giới hạn', cat: 'elec', seller: 'Retro Audio HN', ago: 'hôm qua', start: 3100000, photos: 4, desc: 'Còn bảo hành hãng 3 tháng, hộp hơi móp góc.', cond: 'Như mới', sellerRating: '4,7', sellerStats: '31 phiên đã bán'),
     ]);
     appraisalHistory.addAll([
       AppraisalHistoryEntry(id: 'h1', title: 'Giày retro cao cổ "Chicago" 1985', seller: 'Sneaker Sài Gòn', when: 'Hôm qua', result: 'approved'),

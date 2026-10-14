@@ -195,64 +195,40 @@ class FieldLabel extends StatelessWidget {
       );
 }
 
-/// Thanh chọn vai trò cho mục đích trình diễn prototype — tương đương
-/// thanh "DEMO" trên canvas thiết kế. Chuyển vai trò = đăng nhập nhanh vào
-/// tài khoản mẫu đầu tiên của vai trò đó; nút thoát ở cuối để đăng xuất.
-class RoleSwitcherBar extends StatelessWidget implements PreferredSizeWidget {
-  final String current;
-  final ValueChanged<String> onSelect;
+/// Thanh "DEMO" cho mục đích trình diễn prototype: cho biết đang xem vai trò
+/// nào. Muốn đổi vai trò thì đăng xuất để quay về màn chọn vai trò.
+class DemoRoleBar extends StatelessWidget implements PreferredSizeWidget {
+  final String roleLabel;
   final VoidCallback onLogout;
-  const RoleSwitcherBar({super.key, required this.current, required this.onSelect, required this.onLogout});
-
-  static const roles = [
-    ('bidder', 'Bidder'),
-    ('seller', 'Seller'),
-    ('appraiser', 'Thẩm định'),
-    ('warehouse', 'Kho'),
-    ('admin', 'Admin'),
-  ];
+  const DemoRoleBar({super.key, required this.roleLabel, required this.onLogout});
 
   @override
   Size get preferredSize => const Size.fromHeight(40);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 40,
+    // Nằm ở slot appBar nên phải tự chừa thanh trạng thái.
+    return ColoredBox(
       color: AppColors.ink,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          const Text('DEMO', style: TextStyle(color: Color(0xFFB7BCC6), fontSize: 11, letterSpacing: 0.5)),
-          const Spacer(),
-          ...roles.map((r) {
-            final on = r.$1 == current;
-            return Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Material(
-                color: on ? AppColors.bg : Colors.transparent,
-                borderRadius: BorderRadius.circular(13),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(13),
-                  onTap: () => onSelect(r.$1),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    child: Text(r.$2, style: TextStyle(fontSize: 12, fontWeight: on ? FontWeight.w600 : FontWeight.w500, color: on ? AppColors.ink : const Color(0xFFDADDE3))),
-                  ),
-                ),
+      child: SafeArea(
+        bottom: false,
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.only(left: 12, right: 4),
+          child: Row(
+            children: [
+              const Text('DEMO', style: TextStyle(color: Color(0xFFB7BCC6), fontSize: 11, letterSpacing: 0.5)),
+              const SizedBox(width: 10),
+              Expanded(child: Text(roleLabel, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+              TextButton.icon(
+                onPressed: onLogout,
+                style: TextButton.styleFrom(foregroundColor: const Color(0xFFDADDE3), visualDensity: VisualDensity.compact),
+                icon: const Icon(Icons.logout, size: 16),
+                label: const Text('Đăng xuất', style: TextStyle(fontSize: 12)),
               ),
-            );
-          }),
-          const SizedBox(width: 4),
-          IconButton(
-            onPressed: onLogout,
-            tooltip: 'Đăng xuất',
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-            icon: const Icon(Icons.logout, size: 18, color: Color(0xFFDADDE3)),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

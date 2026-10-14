@@ -117,6 +117,45 @@ void main() {
       expect(s.sellerListings.firstWhere((l) => l.id == sh.id).status, 'sold');
     });
 
+    test('một món hàng mới đi trọn luồng: tạo → duyệt → đặt giá → thắng → thanh toán → kho → giải ngân', () async {
+      s.login('long@sneakersg.vn', '123456');
+      s.createListing(title: 'Giày demo main flow', cat: 'shoes', start: 1000000, desc: 'mô tả', cond: 'Như mới', durationHours: 24, photos: 3);
+      final l = s.myListings.first;
+
+      s.login('khoa.tran@bidvibe.vn', '123456');
+      s.approveAppraisal(s.appraisalQueue.firstWhere((i) => i.listingId == l.id).id);
+      final a = auction(l.auctionId!);
+
+      s.login('minhanh@gmail.com', '123456');
+      s.joinAuction(a.id);
+      s.demoEndSoon(a.id);
+      expect(a.botBudget, 0, reason: 'nút "Còn 10 giây" dừng bot để người demo chắc thắng');
+      s.placeBid(a.id, a.step);
+      expect(a.leading, isTrue);
+      a.endsAt = DateTime.now().subtract(const Duration(seconds: 1));
+      await tick();
+      expect(a.won, isTrue);
+
+      s.payForAuction(a.id, due: a.totalDue - a.hold, method: 'wallet');
+      expect(l.status, 'shipping');
+
+      s.login('long@sneakersg.vn', '123456');
+      s.sellerMarkShipped(l.id);
+
+      s.login('anh.pham@bidvibe.vn', '123456');
+      s.whConfirmReceive(l.id);
+      s.whConfirmInspect(l.id, grade: 'Tốt', shelf: 'Kệ A1-01');
+      s.whMarkPacked(l.id);
+      s.whMarkShipped(l.id);
+      s.whMarkDelivered(l.id);
+      expect(a.fulfil, 'delivered');
+
+      s.login('minhanh@gmail.com', '123456');
+      s.confirmDelivery(a.id);
+      expect(a.escrow, 0);
+      expect(l.status, 'sold');
+    });
+
     test('Seller tạo phiếu → Thẩm định duyệt → phiên công khai cho Bidder', () {
       s.login('long@sneakersg.vn', '123456');
       s.createListing(title: 'Giày thử nghiệm', cat: 'shoes', start: 1000000, desc: 'mô tả', cond: 'Như mới', durationHours: 72, photos: 3);

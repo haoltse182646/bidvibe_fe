@@ -33,13 +33,18 @@ class _BidderPaymentScreenState extends State<BidderPaymentScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Thanh toán', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+      appBar: AppBar(
+          title: const Text('Thanh toán',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border)),
             child: Row(
               children: [
                 CategoryThumb(cat: a.cat, size: 56),
@@ -48,8 +53,16 @@ class _BidderPaymentScreenState extends State<BidderPaymentScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Bạn đã thắng phiên', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.successStrong)),
-                      Text(a.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.35)),
+                      const Text('Bạn đã thắng phiên',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.successStrong)),
+                      Text(a.title,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              height: 1.35)),
                     ],
                   ),
                 ),
@@ -57,24 +70,34 @@ class _BidderPaymentScreenState extends State<BidderPaymentScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          const Text('Chi tiết thanh toán', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const Text('Chi tiết thanh toán',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border)),
             child: Column(
               children: [
                 _row('Giá thắng', store.money(a.price)),
                 _row('Phí dịch vụ (5%)', store.money(fee)),
                 _row('Vận chuyển từ kho', store.money(ship)),
-                _row('Cọc đã đặt', '−${store.money(a.hold)}', color: AppColors.successStrong),
+                _row('Cọc đã đặt', '−${store.money(a.hold)}',
+                    color: AppColors.successStrong),
                 const Divider(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text('Cần thanh toán', style: TextStyle(fontWeight: FontWeight.w600)),
-                    Text(store.money(due), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
+                    const Text('Cần thanh toán',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text(store.money(due),
+                        style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3)),
                   ],
                 ),
               ],
@@ -82,26 +105,49 @@ class _BidderPaymentScreenState extends State<BidderPaymentScreen> {
           ),
           const SizedBox(height: 8),
           if (expired)
-            const Text('Đã quá hạn thanh toán — giao dịch bị huỷ.', style: TextStyle(fontSize: 12, color: AppColors.dangerStrong))
+            const Text('Đã quá hạn thanh toán — giao dịch bị huỷ.',
+                style: TextStyle(fontSize: 12, color: AppColors.dangerStrong))
           else if (a.payBy != null)
             Row(children: [
-              const Text('Còn lại để thanh toán: ', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-              CountdownText(endsAt: a.payBy!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.pendingFg)),
+              const Text('Còn lại để thanh toán: ',
+                  style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              CountdownText(
+                  endsAt: a.payBy!,
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.pendingFg)),
             ])
           else
-            const Text('Hạn thanh toán: 24 giờ kể từ khi phiên kết thúc.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+            const Text('Hạn thanh toán: 24 giờ kể từ khi phiên kết thúc.',
+                style: TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(height: 4),
-          const Text('Tiền thanh toán được giữ ký quỹ, chỉ chuyển cho người bán sau khi bạn xác nhận nhận hàng.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+          const Text(
+              'Tiền thanh toán được giữ ký quỹ, chỉ chuyển cho người bán sau khi bạn xác nhận nhận hàng.',
+              style: TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(height: 18),
-          const Text('Phương thức', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const Text('Phương thức',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          _PayTile(title: 'VietQR', sub: 'Quét mã từ ứng dụng ngân hàng', selected: method == 'qr', enabled: true, onTap: () => setState(() => method = 'qr')),
+          _PayTile(
+              title: 'VietQR',
+              sub: 'Quét mã từ ứng dụng ngân hàng',
+              selected: method == 'qr',
+              enabled: true,
+              onTap: () => setState(() => method = 'qr')),
           const SizedBox(height: 8),
-          _PayTile(title: 'Thẻ nội địa', sub: 'Thanh toán qua cổng ngân hàng', selected: method == 'card', enabled: true, onTap: () => setState(() => method = 'card')),
+          _PayTile(
+              title: 'Thẻ nội địa',
+              sub: 'Thanh toán qua cổng ngân hàng',
+              selected: method == 'card',
+              enabled: true,
+              onTap: () => setState(() => method = 'card')),
           const SizedBox(height: 8),
           _PayTile(
             title: 'Ví BidVibe',
-            sub: walletOk ? 'Số dư ${store.money(store.wallet)}' : 'Số dư ${store.money(store.wallet)} — không đủ, hãy nạp thêm',
+            sub: walletOk
+                ? 'Số dư ${store.money(store.wallet)}'
+                : 'Số dư ${store.money(store.wallet)} — không đủ, hãy nạp thêm',
             selected: method == 'wallet',
             enabled: walletOk,
             onTap: walletOk ? () => setState(() => method = 'wallet') : null,
@@ -117,8 +163,13 @@ class _BidderPaymentScreenState extends State<BidderPaymentScreen> {
                 ? null
                 : () {
                     _paidHere = true;
-                    store.payForAuction(a.id, due: due, method: method == 'wallet' && !walletOk ? 'qr' : method);
-                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => BidderDoneScreen(auctionId: a.id, justPaid: true)));
+                    store.payForAuction(a.id,
+                        due: due,
+                        method:
+                            method == 'wallet' && !walletOk ? 'qr' : method);
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(
+                        builder: (_) =>
+                            BidderDoneScreen(auctionId: a.id, justPaid: true)));
                   },
           ),
         ),
@@ -128,9 +179,12 @@ class _BidderPaymentScreenState extends State<BidderPaymentScreen> {
 
   Widget _row(String k, String v, {Color? color}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        child:
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text(k, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
-          Text(v, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: color)),
+          Text(v,
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w500, color: color)),
         ]),
       );
 }
@@ -141,7 +195,12 @@ class _PayTile extends StatelessWidget {
   final bool selected;
   final bool enabled;
   final VoidCallback? onTap;
-  const _PayTile({required this.title, required this.sub, required this.selected, required this.enabled, required this.onTap});
+  const _PayTile(
+      {required this.title,
+      required this.sub,
+      required this.selected,
+      required this.enabled,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -155,16 +214,31 @@ class _PayTile extends StatelessWidget {
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? AppColors.accent : AppColors.border)),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: selected ? AppColors.accent : AppColors.border)),
             child: Row(
               children: [
-                Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, color: selected ? AppColors.accent : const Color(0xFF9AA0A9)),
+                Icon(
+                    selected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color:
+                        selected ? AppColors.accent : const Color(0xFF9AA0A9)),
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                    Text(sub, style: TextStyle(fontSize: 12, color: enabled ? AppColors.muted : AppColors.dangerFg)),
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
+                    Text(sub,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: enabled
+                                ? AppColors.muted
+                                : AppColors.dangerFg)),
                   ],
                 ),
               ],
