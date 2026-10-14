@@ -12,7 +12,7 @@ import 'bidder_payment.dart';
 /// Chi tiết phiên đấu giá. Gồm 3 hành động chính của Bidder theo use case:
 /// xem phiên trực tiếp (View Live Auction), đặt cọc tham gia (Place Auction
 /// Deposit) và đặt giá (Place Bid), cộng với báo cáo phiên đáng ngờ.
-class BidderDetailScreen extends StatelessWidget {
+class BidderDetailScreen extends StatelessWidget {  
   final String auctionId;
   const BidderDetailScreen({super.key, required this.auctionId});
 
