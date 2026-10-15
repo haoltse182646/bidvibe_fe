@@ -1,96 +1,124 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
-import '../../store.dart';
-import '../../theme.dart';
-import 'bidder_detail.dart';
-import 'bidder_payment.dart';
-import 'bidder_done.dart';
+import '../../features/notifications/notification_controller.dart';
+import '../../features/notifications/notification_repository.dart';
 
 class BidderNotificationsScreen extends StatelessWidget {
-  const BidderNotificationsScreen({super.key});
+  final NotificationController controller;
+  final Future<void> Function(NotificationItem) onOpen;
+  const BidderNotificationsScreen({
+    super.key,
+    required this.controller,
+    required this.onOpen,
+  });
+
+  IconData _icon(String type) => switch (type) {
+    'outbid' => Icons.trending_up,
+    'win' => Icons.emoji_events_outlined,
+    'refund' => Icons.replay,
+    'order' => Icons.local_shipping_outlined,
+    'dispute' => Icons.support_agent,
+    'warn' => Icons.warning_amber_rounded,
+    _ => Icons.notifications_outlined,
+  };
 
   @override
-  Widget build(BuildContext context) {
-    final store = context.watch<AppStore>();
-
-    return SafeArea(
-      bottom: false,
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: controller,
+    builder: (context, child) => RefreshIndicator(
+      onRefresh: controller.refresh,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         children: [
-          const Text('Thông báo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-            child: Column(
-              children: store.notifications.asMap().entries.map((e) {
-                final n = e.value;
-                final (icon, bg, fg) = switch (n.kind) {
-                  'outbid' => (Icons.error_outline, AppColors.dangerBg, AppColors.dangerStrong),
-                  'win' => (Icons.check_circle_outline, AppColors.successBg, AppColors.successStrong),
-                  'refund' => (Icons.replay, AppColors.progressBg, AppColors.progressFg),
-                  'order' => (Icons.local_shipping_outlined, AppColors.progressBg, AppColors.progressFg),
-                  'warn' => (Icons.warning_amber_rounded, AppColors.pendingBg, AppColors.pendingFg),
-                  _ => (Icons.info_outline, AppColors.neutralBg, AppColors.neutralFg),
-                };
-                return Material(
-                  color: n.unread ? const Color(0xFFF7F9FC) : Colors.white,
-                  child: InkWell(
-                    onTap: () {
-                      if (n.targetIsPay && n.targetAuctionId != null) {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderPaymentScreen(auctionId: n.targetAuctionId!)));
-                      } else if (n.targetIsOrder && n.targetAuctionId != null) {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderDoneScreen(auctionId: n.targetAuctionId!)));
-                      } else if (n.targetAuctionId != null) {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderDetailScreen(auctionId: n.targetAuctionId!)));
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(border: e.key == 0 ? null : const Border(top: BorderSide(color: AppColors.border))),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(radius: 18, backgroundColor: bg, child: Icon(icon, size: 18, color: fg)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(child: Text(n.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
-                                    Text(_when(n.at), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(n.body, style: const TextStyle(fontSize: 13, height: 1.4, color: AppColors.mutedStrong)),
-                                if (n.kind == 'outbid' || n.targetIsPay || n.targetIsOrder) ...[
-                                  const SizedBox(height: 8),
-                                  Text(n.targetIsPay ? 'Thanh toán ngay' : (n.targetIsOrder ? 'Xem đơn hàng' : 'Đặt giá lại'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.accent)),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+          Text('Thông báo', style: Theme.of(context).textTheme.headlineSmall),
+          Text('${controller.unreadCount} thông báo chưa đọc'),
+          Text(
+            controller.connected
+                ? 'Đang nhận thông báo trực tiếp'
+                : 'Chưa có kết nối trực tiếp. Kéo xuống để cập nhật.',
           ),
+          TextButton(
+            onPressed:
+                controller.loading ||
+                    controller.mutating ||
+                    controller.unreadCount == 0
+                ? null
+                : controller.markAllRead,
+            child: const Text('Đánh dấu tất cả đã đọc'),
+          ),
+          if (controller.loading || controller.mutating)
+            const LinearProgressIndicator(),
+          if (controller.error != null) ...[
+            Text(
+              controller.error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            TextButton(
+              onPressed: controller.loading ? null : controller.refresh,
+              child: const Text('Thử lại'),
+            ),
+            if (controller.items.isNotEmpty)
+              const Text(
+                'Danh sách bên dưới có thể là dữ liệu đã tải trước đó.',
+              ),
+          ],
+          if (!controller.loading &&
+              controller.error == null &&
+              controller.items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Text('Bạn chưa có thông báo.'),
+            ),
+          for (final item in controller.items)
+            Card(
+              color: item.isRead
+                  ? null
+                  : Theme.of(context).colorScheme.primaryContainer,
+              child: ListTile(
+                leading: Icon(_icon(item.type)),
+                title: Text(
+                  item.title,
+                  style: TextStyle(
+                    fontWeight: item.isRead
+                        ? FontWeight.normal
+                        : FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  item.createdAt == null
+                      ? ''
+                      : DateFormat('dd/MM/yyyy HH:mm')
+                            .format(item.createdAt!.toLocal()),
+                ),
+                trailing: item.isRead
+                    ? null
+                    : const Icon(Icons.circle, size: 10),
+                onTap: controller.mutating ? null : () => onOpen(item),
+              ),
+            ),
+          if (controller.pageError != null) ...[
+            Text(controller.pageError!),
+            TextButton(
+              onPressed: controller.loadingMore ? null : controller.more,
+              child: const Text('Thử tải thêm lại'),
+            ),
+          ],
+          if (controller.hasMore && controller.pageError == null)
+            OutlinedButton(
+              onPressed:
+                  controller.loading ||
+                      controller.loadingMore ||
+                      controller.mutating
+                  ? null
+                  : controller.more,
+              child: Text(
+                controller.loadingMore ? 'Đang tải...' : 'Tải thêm thông báo',
+              ),
+            ),
         ],
       ),
-    );
-  }
-
-  String _when(DateTime t) {
-    final d = DateTime.now().difference(t);
-    if (d.inSeconds < 60) return 'Vừa xong';
-    if (d.inHours < 1) return '${d.inMinutes} phút trước';
-    if (d.inDays < 1) return '${d.inHours} giờ trước';
-    return '${d.inDays} ngày trước';
-  }
+    ),
+  );
 }

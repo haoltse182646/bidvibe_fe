@@ -1,94 +1,241 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/remote_app_store.dart';
+import '../../features/auctions/auction_repository.dart';
+import '../../features/notifications/notification_controller.dart';
+import '../../features/notifications/notification_events.dart';
+import '../../features/notifications/notification_repository.dart';
 import '../../store.dart';
-import '../../theme.dart';
-import '../../widgets/common.dart';
+import '../auth/auth_profile.dart';
+import 'auction_detail_screen.dart';
 import 'bidder_home.dart';
 import 'bidder_wallet.dart';
 import 'bidder_notifications.dart';
-import 'bidder_detail.dart';
-import 'bidder_payment.dart';
-import 'bidder_done.dart';
-import '../auth/auth_profile.dart';
 
-/// Khung điều hướng của vai trò Bidder: 4 tab dưới cùng (Khám phá, Ví,
-/// Thông báo, Hồ sơ) cộng với toast nổi khi bị vượt giá / thắng phiên /
-/// đơn hàng có tiến triển.
 class BidderShell extends StatefulWidget {
-  const BidderShell({super.key});
-
+  final NotificationController? notifications;
+  // Connect this to the real order/dispute/listing screens when those modules are integrated.
+  final Future<void> Function(NotificationTarget)? onOpenTarget;
+  const BidderShell({super.key, this.notifications, this.onOpenTarget});
   @override
   State<BidderShell> createState() => _BidderShellState();
 }
 
-class _BidderShellState extends State<BidderShell> {
-  int tab = 0;
+class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
+  late final NotificationController _notifications;
+  late final bool _ownsController;
+  int _tab = 0;
+  bool _loggingOut = false;
+  String? _lastToast;
+  ScaffoldMessengerState? _messenger;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsController = widget.notifications == null;
+    if (widget.notifications != null) {
+      _notifications = widget.notifications!;
+    } else {
+      final store = context.read<AppStore>();
+      if (store is! RemoteAppStore || store.api.token == null) {
+        throw StateError('BidderShell needs an authenticated RemoteAppStore.');
+      }
+      _notifications = NotificationController(
+        repository: NotificationRepository(store.api),
+        events: SessionNotificationEvents(store.api.token!),
+      );
+    }
+    _notifications.addListener(_changed);
+    WidgetsBinding.instance.addObserver(this);
+    _notifications.start();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _messenger = ScaffoldMessenger.maybeOf(context);
+  }
+
+  void _changed() {
+    if (!mounted) {
+      return;
+    }
+    if (_notifications.authCode != null && !_loggingOut) {
+      _loggingOut = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        final store = context.read<AppStore>();
+        store.logout();
+        if (store is RemoteAppStore) {
+          store.sessionError = _notifications.authCode == 'ACCOUNT_SUSPENDED'
+              ? 'Tài khoản đã bị tạm khóa.'
+              : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        }
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      });
+    }
+    final toast = _notifications.toast;
+    if (toast != null && toast.id != _lastToast && !_loggingOut) {
+      _lastToast = toast.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _loggingOut || _lastToast != toast.id) {
+          return;
+        }
+        _messenger?.removeCurrentSnackBar();
+        _messenger?.showSnackBar(
+          SnackBar(
+            content: Text(toast.title),
+            action: SnackBarAction(label: 'Xem', onPressed: () => _open(toast)),
+          ),
+        );
+      });
+    }
+    setState(() {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _notifications.resume();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notifications.removeListener(_changed);
+    if (_ownsController) {
+      _notifications.dispose();
+    }
+    if (_messenger?.mounted == true) {
+      _messenger!.removeCurrentSnackBar();
+    }
+    super.dispose();
+  }
+
+  Future<void> _auction(String id) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AuctionDetailScreen(
+          auctionId: id,
+          repository: AuctionRepository(_notifications.repository.api),
+        ),
+      ),
+    );
+    if (mounted) {
+      await _notifications.refresh();
+    }
+  }
+
+  Future<void> _open(NotificationItem item) async {
+    final read = await _notifications.markRead(item);
+    if (!mounted || !read || _notifications.authCode != null) {
+      return;
+    }
+    final target = NotificationTarget.fromData(item.data);
+    if (target == null) {
+      return;
+    }
+    if (target.kind == 'auction') {
+      await _auction(target.id);
+      return;
+    }
+    final callback = widget.onOpenTarget;
+    if (callback != null) {
+      await callback(target);
+      return;
+    }
+    final labels = {
+      'dispute': 'Tranh chấp',
+      'order': 'Đơn hàng',
+      'listing': 'Tin đăng',
+    };
+    final auctionId = item.data?['auctionId'];
+    final hasAuction =
+        auctionId != null && RegExp(r'^[0-9]{1,18}$').hasMatch('$auctionId');
+    final showAuction = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '${labels[target.kind]} #${target.id}',
+                style: Theme.of(sheetContext).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              Text(item.title),
+              const SizedBox(height: 16),
+              if (hasAuction)
+                FilledButton(
+                  onPressed: () => Navigator.pop(sheetContext, true),
+                  child: const Text('Xem phiên đấu giá liên quan'),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(sheetContext, false),
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mounted && showAuction == true) {
+      await _auction('$auctionId');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final store = context.watch<AppStore>();
-    final unread = store.unreadNotifications;
-
+    final unread = _notifications.unreadCount;
+    final badge = unread > 99 ? '99+' : '$unread';
     return Scaffold(
-      body: Stack(
+      body: IndexedStack(
+        index: _tab,
         children: [
-          IndexedStack(
-            index: tab,
-            children: const [
-              BidderHomeScreen(),
-              BidderWalletScreen(),
-              BidderNotificationsScreen(),
-              AuthProfileScreen(),
-            ],
-          ),
-          if (store.toastId != null)
-            Positioned(
-              left: 12,
-              right: 12,
-              top: 8,
-              child: SafeArea(
-                bottom: false,
-                child: TopToast(
-                  title: store.toastTitle,
-                  body: store.toastBody,
-                  danger: store.toastIsDanger,
-                  success: store.toastIsSuccess,
-                  onTap: () {
-                    store.dismissToast();
-                    if (store.toastTargetIsWallet == true) {
-                      setState(() => tab = 1);
-                    } else if (store.toastTargetIsOrder == true && store.toastTargetAuction != null) {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderDoneScreen(auctionId: store.toastTargetAuction!)));
-                    } else if (store.toastTargetIsPay == true && store.toastTargetAuction != null) {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderPaymentScreen(auctionId: store.toastTargetAuction!)));
-                    } else if (store.toastTargetAuction != null) {
-                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderDetailScreen(auctionId: store.toastTargetAuction!)));
-                    }
-                  },
-                  onClose: store.dismissToast,
-                ),
-              ),
-            ),
+          const BidderHomeScreen(),
+          const BidderWalletScreen(),
+          BidderNotificationsScreen(controller: _notifications, onOpen: _open),
+          const AuthProfileScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: tab,
-        onDestinationSelected: (i) {
-          setState(() => tab = i);
-          if (i == 2) store.markNotificationsRead();
+        selectedIndex: _tab,
+        onDestinationSelected: (index) {
+          setState(() => _tab = index);
+          if (index == 2) {
+            _notifications.refresh();
+          }
         },
-        backgroundColor: Colors.white,
-        indicatorColor: AppColors.progressBg,
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: 'Khám phá'),
-          const NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Ví'),
+          const NavigationDestination(
+            icon: Icon(Icons.grid_view_outlined),
+            label: 'Khám phá',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            label: 'Ví',
+          ),
           NavigationDestination(
-            icon: Badge(label: Text('$unread'), isLabelVisible: unread > 0, child: const Icon(Icons.notifications_outlined)),
-            selectedIcon: Badge(label: Text('$unread'), isLabelVisible: unread > 0, child: const Icon(Icons.notifications)),
+            icon: Badge(
+              label: Text(badge),
+              isLabelVisible: unread > 0,
+              child: const Icon(Icons.notifications_outlined),
+            ),
             label: 'Thông báo',
           ),
-          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Hồ sơ'),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Hồ sơ',
+          ),
         ],
       ),
     );
