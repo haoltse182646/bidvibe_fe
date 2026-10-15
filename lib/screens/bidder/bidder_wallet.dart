@@ -1,220 +1,335 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/api_client.dart';
+import '../../core/remote_app_store.dart';
+import '../../features/wallet/wallet_repository.dart';
 import '../../store.dart';
-import '../../theme.dart';
 
 class BidderWalletScreen extends StatefulWidget {
-  const BidderWalletScreen({super.key});
-
+  final WalletRepository? repository;
+  const BidderWalletScreen({super.key, this.repository});
   @override
   State<BidderWalletScreen> createState() => _BidderWalletScreenState();
 }
 
 class _BidderWalletScreenState extends State<BidderWalletScreen> {
-  bool topupOpen = false;
-  int topupAmt = 1000000;
-  String method = 'qr';
-
-  static const amounts = [500000, 1000000, 2000000, 5000000];
+  late final WalletRepository _repo;
+  final _amount = TextEditingController();
+  final _form = GlobalKey<FormState>();
+  WalletSnapshot? _wallet;
+  List<Map<String, dynamic>> _transactions = [];
+  bool _loading = true,
+      _posting = false,
+      _loadingMore = false,
+      _uncertain = false;
+  int _total = 0, _generation = 0;
+  String? _error, _pageError;
 
   @override
-  Widget build(BuildContext context) {
-    final store = context.watch<AppStore>();
+  void initState() {
+    super.initState();
+    _repo =
+        widget.repository ??
+        WalletRepository((context.read<AppStore>() as RemoteAppStore).api);
+    _load();
+  }
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-        children: [
-          const Text('Ví của tôi', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(20)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Số dư khả dụng', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                Text(store.money(store.wallet), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-                const Divider(color: Colors.white24, height: 28),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Đang giữ cọc', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          Text(store.money(store.walletHeld), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => setState(() => topupOpen = !topupOpen),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.ink, shape: const StadiumBorder()),
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Nạp tiền'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+  @override
+  void dispose() {
+    _generation++;
+    _amount.dispose();
+    super.dispose();
+  }
+
+  String _money(num value) =>
+      '${NumberFormat.decimalPattern('vi_VN').format(value)} đ';
+  String _time(dynamic value) {
+    final parsed = DateTime.tryParse('$value');
+    return parsed == null
+        ? 'Chưa có thời gian'
+        : DateFormat('dd/MM/yyyy HH:mm:ss').format(parsed.toLocal());
+  }
+
+  bool _authError(Object error) {
+    if (error is ApiException &&
+        ['UNAUTHORIZED', 'ACCOUNT_SUSPENDED'].contains(error.code)) {
+      final store = context.read<AppStore>();
+      if (store is RemoteAppStore) {
+        store.logout();
+        store.sessionError = error.message;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  String _message(Object error) => error is ApiException
+      ? error.message
+      : 'Không tải được ví. Vui lòng thử lại.';
+
+  Future<void> _load() async {
+    if (_posting) {
+      return;
+    }
+    final generation = ++_generation;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _pageError = null;
+      _loadingMore = false;
+    });
+    try {
+      final results = await Future.wait<Object>([
+        _repo.wallet(),
+        _repo.transactions(),
+      ]);
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      final page = results[1] as WalletPage;
+      setState(() {
+        _wallet = results[0] as WalletSnapshot;
+        _transactions = page.transactions;
+        _total = page.total;
+        _uncertain = false;
+      });
+    } catch (e) {
+      if (!mounted || generation != _generation || _authError(e)) {
+        return;
+      }
+      setState(() => _error = _message(e));
+    } finally {
+      if (mounted && generation == _generation) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _more() async {
+    if (_loading ||
+        _posting ||
+        _loadingMore ||
+        _transactions.length >= _total) {
+      return;
+    }
+    final generation = _generation;
+    setState(() {
+      _loadingMore = true;
+      _pageError = null;
+    });
+    try {
+      final page = await _repo.transactions(offset: _transactions.length);
+      if (!mounted || generation != _generation) {
+        return;
+      }
+      setState(() {
+        _transactions = [..._transactions, ...page.transactions];
+        _total = page.total;
+      });
+    } catch (e) {
+      if (!mounted || generation != _generation || _authError(e)) {
+        return;
+      }
+      setState(() => _pageError = _message(e));
+    } finally {
+      if (mounted && generation == _generation) {
+        setState(() => _loadingMore = false);
+      }
+    }
+  }
+
+  Future<void> _topup() async {
+    if (_posting ||
+        _loading ||
+        _loadingMore ||
+        _uncertain ||
+        !_form.currentState!.validate()) {
+      return;
+    }
+    final amount = int.parse(_amount.text.trim());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xác nhận nạp ví'),
+        content: Text(
+          'Nạp ${_money(amount)} vào ví? Đây là cổng nạp tiền giả lập của bản demo.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Hủy'),
           ),
-          const SizedBox(height: 10),
-          const Text('Mỗi phiên bạn tham gia, BidVibe giữ cọc 10% giá khởi điểm. Cọc tự động hoàn về ví nếu bạn không thắng, hoặc được trừ vào tổng tiền nếu bạn thắng.', style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4)),
-
-          if (topupOpen) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Chọn số tiền nạp', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 10),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 2.6,
-                    children: amounts.map((v) {
-                      final on = topupAmt == v;
-                      return OutlinedButton(
-                        onPressed: () => setState(() => topupAmt = v),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: on ? AppColors.accent : Colors.white,
-                          foregroundColor: on ? Colors.white : AppColors.ink,
-                          side: BorderSide(color: on ? AppColors.accent : AppColors.border),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(store.money(v), style: const TextStyle(fontWeight: FontWeight.w600)),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 14),
-                  const Text('Phương thức', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  _MethodTile(title: 'VietQR', sub: 'Quét mã từ ứng dụng ngân hàng', selected: method == 'qr', onTap: () => setState(() => method = 'qr')),
-                  const SizedBox(height: 8),
-                  _MethodTile(title: 'Thẻ nội địa', sub: 'Thanh toán qua cổng ngân hàng', selected: method == 'card', onTap: () => setState(() => method = 'card')),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                      onPressed: () {
-                        store.topUp(topupAmt, method);
-                        setState(() => topupOpen = false);
-                      },
-                      child: Text('Nạp ${store.money(topupAmt)}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 22),
-          const Text('Lịch sử giao dịch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-            child: Column(
-              children: store.walletTxs.asMap().entries.map((e) {
-                final x = e.value;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(border: e.key == 0 ? null : const Border(top: BorderSide(color: AppColors.border))),
-                  child: Row(
-                    children: [
-                      CircleAvatar(radius: 18, backgroundColor: AppColors.neutralBg, child: Icon(_iconFor(x.kind), size: 18, color: AppColors.neutralFg)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(x.label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                            Text(_when(x.at), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        x.kind == 'forfeit' ? 'Không hoàn' : '${x.amount > 0 ? '+' : '−'}${store.money(x.amount.abs())}',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: x.kind == 'forfeit' ? AppColors.dangerStrong : (x.amount > 0 ? AppColors.successStrong : AppColors.ink)),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Xác nhận'),
           ),
         ],
       ),
     );
-  }
-
-  IconData _iconFor(String kind) {
-    switch (kind) {
-      case 'topup':
-        return Icons.add;
-      case 'hold':
-        return Icons.lock_outline;
-      case 'release':
-      case 'refund':
-        return Icons.replay;
-      case 'forfeit':
-        return Icons.block;
-      default:
-        return Icons.arrow_outward;
+    if (!mounted || confirmed != true || _posting || _loading || _loadingMore) {
+      return;
+    }
+    setState(() {
+      _posting = true;
+      _error = null;
+    });
+    var success = false;
+    try {
+      final wallet = await _repo.topup(amount);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _wallet = wallet);
+      _amount.clear();
+      success = true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Đã nạp ${_money(amount)} vào ví.')),
+      );
+    } catch (e) {
+      if (!mounted || _authError(e)) {
+        return;
+      }
+      final knownRejection =
+          e is ApiException &&
+          ['VALIDATION_ERROR', 'FORBIDDEN', 'NOT_FOUND'].contains(e.code);
+      setState(() {
+        _uncertain = !knownRejection;
+        _error = knownRejection ? _message(e) : 'Chưa xác định được kết quả nạp. Hãy tải lại ví và kiểm tra giao dịch trước khi nạp lần nữa.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _posting = false);
+      }
+    }
+    if (mounted && success) {
+      await _load();
     }
   }
 
-  String _when(DateTime t) {
-    final d = DateTime.now().difference(t);
-    if (d.inSeconds < 60) return 'Vừa xong';
-    if (d.inHours < 1) return '${d.inMinutes} phút trước';
-    if (d.inDays < 1) return '${d.inHours} giờ trước';
-    return '${d.inDays} ngày trước';
-  }
-}
-
-class _MethodTile extends StatelessWidget {
-  final String title;
-  final String sub;
-  final bool selected;
-  final VoidCallback onTap;
-  const _MethodTile({required this.title, required this.sub, required this.selected, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? const Color(0xFFF1F3F8) : Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: selected ? AppColors.accent : AppColors.border)),
-          child: Row(
-            children: [
-              Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, size: 20, color: selected ? AppColors.accent : const Color(0xFF9AA0A9)),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                  Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                ],
+    final locked =
+        _loading || _posting || _loadingMore || _uncertain || _wallet == null;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text('Ví của tôi', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 12),
+          if (_loading || _posting) const LinearProgressIndicator(),
+          if (_error != null) ...[
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            if (_wallet != null)
+              const Text('Số dư bên dưới có thể là dữ liệu đã tải trước đó.'),
+          ],
+          TextButton.icon(
+            onPressed: _loading || _posting ? null : _load,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Tải lại ví và lịch sử'),
+          ),
+          if (_wallet != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Số dư khả dụng'),
+                    Text(
+                      _money(_wallet!.available),
+                      key: const Key('wallet-available'),
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Text('Cọc đang giữ: ${_money(_wallet!.held)}'),
+                    const Text('Tiền cọc đang giữ nằm ngoài số dư khả dụng.'),
+                  ],
+                ),
               ),
+            ),
+          const SizedBox(height: 16),
+          Text('Nạp tiền', style: Theme.of(context).textTheme.titleLarge),
+          const Text('Nạp tiền giả lập cho bản demo, không thu tiền thật.'),
+          const SizedBox(height: 12),
+          Form(
+            key: _form,
+            child: TextFormField(
+              controller: _amount,
+              enabled: !locked,
+              keyboardType: TextInputType.number,
+              validator: (v) => WalletRepository.validateAmount(v ?? ''),
+              decoration: const InputDecoration(
+                labelText: 'Số tiền (VND)',
+                hintText: 'Ví dụ: 1000000',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final amount in [100000, 500000, 1000000, 5000000])
+                ActionChip(
+                  label: Text(_money(amount)),
+                  onPressed: locked ? null : () => _amount.text = '$amount',
+                ),
             ],
           ),
-        ),
+          FilledButton(
+            onPressed: locked ? null : _topup,
+            child: Text(_posting ? 'Đang nạp...' : 'Nạp tiền'),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Lịch sử giao dịch',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          Text('Đã tải ${_transactions.length} / $_total giao dịch'),
+          if (!_loading && _error == null && _transactions.isEmpty)
+            const Text('Chưa có giao dịch'),
+          for (final tx in _transactions)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${tx['kindLabel'] ?? tx['kind']}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      'Giá trị giao dịch: ${_money((tx['amount'] as num?) ?? 0)}',
+                    ),
+                    Text(
+                      'Số dư sau giao dịch: ${_money((tx['balanceAfter'] as num?) ?? 0)}',
+                    ),
+                    Text('${_time(tx['createdAt'])} · Mã #${tx['id']}'),
+                    if (tx['relatedAuctionId'] != null)
+                      Text(
+                        'Phiên #${tx['relatedAuctionId']} · ${tx['auctionTitle'] ?? ''}',
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          if (_pageError != null) ...[
+            Text(_pageError!),
+            TextButton(onPressed: _more, child: const Text('Thử tải thêm lại')),
+          ],
+          if (_transactions.length < _total && _pageError == null)
+            OutlinedButton(
+              onPressed: _loading || _posting || _loadingMore ? null : _more,
+              child: Text(_loadingMore ? 'Đang tải...' : 'Tải thêm giao dịch'),
+            ),
+        ],
       ),
     );
   }
