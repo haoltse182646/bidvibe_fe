@@ -1,123 +1,282 @@
+import 'auction_detail_screen.dart';
+
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../models.dart';
+import '../../core/api_client.dart';
+import '../../core/remote_app_store.dart';
+import '../../features/auctions/auction_repository.dart';
 import '../../store.dart';
-import '../../theme.dart';
-import '../../widgets/common.dart';
-import 'bidder_detail.dart';
-import '../customer/customer_chatbot.dart';
 
 class BidderHomeScreen extends StatefulWidget {
-  const BidderHomeScreen({super.key});
-
+  final AuctionRepository? repository;
+  const BidderHomeScreen({super.key, this.repository});
   @override
   State<BidderHomeScreen> createState() => _BidderHomeScreenState();
 }
 
 class _BidderHomeScreenState extends State<BidderHomeScreen> {
-  String cat = 'all';
+  final _search = TextEditingController();
+  late final AuctionRepository _repo;
+  List<Map<String, dynamic>> _categories = [], _items = [];
+  String? _category, _error, _categoryError;
+  String _status = 'live', _sort = 'ending', _query = '';
+  bool _loading = true, _moreLoading = false, _categoryLoading = true;
+  int _total = 0, _generation = 0;
 
-  static const cats = [('all', 'Tất cả'), ('shoes', 'Giày'), ('elec', 'Điện tử'), ('antique', 'Đồ cổ')];
+  @override
+  void initState() {
+    super.initState();
+    _repo =
+        widget.repository ??
+        AuctionRepository((context.read<AppStore>() as RemoteAppStore).api);
+    _loadCategories();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _generation++;
+    _search.dispose();
+    super.dispose();
+  }
+
+  String _message(Object error) {
+    if (error is ApiException) return error.message;
+    return 'Không tải được dữ liệu. Vui lòng thử lại.';
+  }
+
+  bool _sessionExpired(Object error) {
+    if (error is ApiException &&
+        ['UNAUTHORIZED', 'ACCOUNT_SUSPENDED'].contains(error.code)) {
+      final store = context.read<AppStore>();
+      if (store is RemoteAppStore) {
+        store.logout();
+        store.sessionError = error.message;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      _categoryLoading = true;
+      _categoryError = null;
+    });
+    try {
+      final values = await _repo.categories();
+      if (!mounted) return;
+      setState(() => _categories = values);
+    } catch (e) {
+      if (!mounted || _sessionExpired(e)) return;
+      setState(() => _categoryError = _message(e));
+    } finally {
+      if (mounted) setState(() => _categoryLoading = false);
+    }
+  }
+
+  Future<void> _load({bool more = false}) async {
+    if (more && (_loading || _moreLoading || _items.length >= _total)) return;
+    final generation = more ? _generation : ++_generation;
+    final offset = more ? _items.length : 0;
+    setState(() {
+      _error = null;
+      if (more) {
+        _moreLoading = true;
+      } else {
+        _loading = true;
+        _moreLoading = false;
+        _items = [];
+        _total = 0;
+      }
+    });
+    try {
+      final page = await _repo.list(
+        status: _status,
+        category: _category,
+        query: _query,
+        sort: _sort,
+        offset: offset,
+      );
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _items = more ? [..._items, ...page.items] : page.items;
+        _total = page.total;
+      });
+    } catch (e) {
+      if (!mounted || generation != _generation || _sessionExpired(e)) return;
+      setState(() => _error = _message(e));
+    } finally {
+      if (mounted && generation == _generation) {
+        setState(() {
+          _loading = false;
+          _moreLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([_loadCategories(), _load()]);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final store = context.watch<AppStore>();
-    final items = store.auctions.where((a) => cat == 'all' || a.cat == cat).toList()
-      ..sort((x, y) {
-        final xe = x.ended ? 1 : 0, ye = y.ended ? 1 : 0;
-        if (xe != ye) return xe - ye;
-        return x.endsAt.compareTo(y.endsAt);
-      });
-
-    return SafeArea(
-      bottom: false,
-      child: Column(
+    return RefreshIndicator(
+      onRefresh: _refresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(8)),
-                  child: const Text('B', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                ),
-                const SizedBox(width: 8),
-                const Text('BidVibe', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-                const Spacer(),
-                IconButton(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerChatbotScreen())),
-                  tooltip: 'Hỗ trợ',
-                  icon: const Icon(Icons.support_agent, color: AppColors.accent),
-                ),
-                Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(color: Colors.white, border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.account_balance_wallet_outlined, size: 18),
-                      const SizedBox(width: 6),
-                      Text(store.money(store.wallet), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
+          Text(
+            'Khám phá phiên đấu giá',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          const Text('Dữ liệu từ máy chủ · Kéo xuống để cập nhật'),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _search,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) {
+              _query = _search.text.trim();
+              _load();
+            },
+            decoration: InputDecoration(
+              labelText: 'Tìm theo tên sản phẩm',
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                tooltip: 'Tìm kiếm',
+                icon: const Icon(Icons.search),
+                onPressed: () {
+                  _query = _search.text.trim();
+                  _load();
+                },
+              ),
             ),
           ),
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Đang diễn ra', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-                              SizedBox(height: 2),
-                              Text('Giá cập nhật liên tục · mọi món đều đã thẩm định', style: TextStyle(fontSize: 13, color: AppColors.muted)),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.successStrong, shape: BoxShape.circle)),
-                            const SizedBox(width: 6),
-                            const Text('Trực tiếp', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.successStrong)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-                  sliver: SliverToBoxAdapter(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: cats.map((c) => FilterChipButton(label: c.$2, selected: cat == c.$1, onTap: () => setState(() => cat = c.$1))).toList(),
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, mainAxisExtent: 250),
-                    delegate: SliverChildBuilderDelegate((context, i) => _AuctionCard(auction: items[i]), childCount: items.length),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 12),
+          if (_categoryLoading) const LinearProgressIndicator(),
+          if (_categoryError != null) ...[
+            Text(_categoryError!),
+            TextButton(
+              onPressed: _loadCategories,
+              child: const Text('Tải lại danh mục'),
             ),
+          ],
+          Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Tất cả'),
+                selected: _category == null,
+                onSelected: (_) {
+                  setState(() => _category = null);
+                  _load();
+                },
+              ),
+              for (final category in _categories)
+                ChoiceChip(
+                  label: Text('${category['name']}'),
+                  selected: _category == category['code'],
+                  onSelected: (_) {
+                    setState(() => _category = '${category['code']}');
+                    _load();
+                  },
+                ),
+            ],
           ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _status,
+            decoration: const InputDecoration(labelText: 'Danh sách phiên'),
+            items: const [
+              DropdownMenuItem(value: 'live', child: Text('Đang diễn ra')),
+              DropdownMenuItem(
+                value: 'ended',
+                child: Text('Đã kết thúc / hủy'),
+              ),
+              DropdownMenuItem(
+                value: 'joined',
+                child: Text('Phiên đã tham gia'),
+              ),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                _status = v;
+                _load();
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _sort,
+            decoration: const InputDecoration(labelText: 'Sắp xếp'),
+            items: const [
+              DropdownMenuItem(value: 'ending', child: Text('Sắp kết thúc')),
+              DropdownMenuItem(value: 'newest', child: Text('Mới nhất')),
+              DropdownMenuItem(value: 'price_asc', child: Text('Giá tăng dần')),
+              DropdownMenuItem(
+                value: 'price_desc',
+                child: Text('Giá giảm dần'),
+              ),
+              DropdownMenuItem(
+                value: 'popular',
+                child: Text('Nhiều lượt đặt giá'),
+              ),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                _sort = v;
+                _load();
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else ...[
+            Text('Đã tải ${_items.length} / $_total phiên'),
+            if (_items.isEmpty && _error == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Text(
+                  'Không có phiên phù hợp. Thử đổi bộ lọc hoặc từ khóa.',
+                ),
+              ),
+            for (final item in _items)
+              _AuctionCard(
+                item: item,
+                onOpen: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AuctionDetailScreen(
+                        auctionId: '${item['id']}',
+                        repository: _repo,
+                      ),
+                    ),
+                  );
+                  if (mounted) await _load();
+                },
+              ),
+            if (_error != null) ...[
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              TextButton(
+                onPressed: () => _load(more: _items.isNotEmpty),
+                child: const Text('Thử lại'),
+              ),
+            ],
+            if (_items.length < _total && _error == null)
+              OutlinedButton(
+                onPressed: _moreLoading ? null : () => _load(more: true),
+                child: Text(_moreLoading ? 'Đang tải...' : 'Tải thêm'),
+              ),
+          ],
         ],
       ),
     );
@@ -125,105 +284,78 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
 }
 
 class _AuctionCard extends StatelessWidget {
-  final Auction auction;
-  const _AuctionCard({required this.auction});
+  final Map<String, dynamic> item;
+  final VoidCallback onOpen;
+  const _AuctionCard({required this.item, required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
-    final store = context.read<AppStore>();
-    final urgent = !auction.ended && auction.endsAt.difference(DateTime.now()).inSeconds <= 60;
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BidderDetailScreen(auctionId: auction.id))),
-        child: Container(
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    Positioned.fill(child: Container(color: categoryTileColor(auction.cat), alignment: Alignment.center, child: Icon(_iconFor(auction.cat), size: 48, color: AppColors.neutralFg))),
-                    Positioned(
-                      left: 8,
-                      bottom: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: urgent ? AppColors.dangerStrong : Colors.black.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(12)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.schedule, size: 12, color: Colors.white),
-                            const SizedBox(width: 4),
-                            CountdownText(endsAt: auction.endsAt, ended: auction.ended, short: true, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (auction.paused && !auction.ended)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Tạm dừng', bg: AppColors.pendingFg))
-                    else if (auction.terminated)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Đã bị chấm dứt', bg: AppColors.dangerStrong))
-                    else if (!auction.ended && auction.leading)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Bạn dẫn đầu', bg: AppColors.successStrong))
-                    else if (!auction.ended && auction.myBid > 0 && !auction.leading)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Bị vượt giá', bg: AppColors.dangerStrong))
-                    else if (!auction.ended && auction.joined)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Đã đặt cọc', bg: AppColors.accent))
-                    else if (auction.ended && auction.won)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Bạn đã thắng', bg: AppColors.successStrong))
-                    else if (auction.ended && auction.joined)
-                      const Positioned(left: 8, top: 8, child: _Chip(text: 'Không thắng', bg: AppColors.neutralFg)),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(auction.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, height: 1.3)),
-                    const SizedBox(height: 6),
-                    const Text('Giá hiện tại', style: TextStyle(fontSize: 11, color: AppColors.muted)),
-                    Text(store.money(auction.price), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
-                    const SizedBox(height: 2),
-                    Text('${auction.count} lượt đặt giá', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                  ],
-                ),
-              ),
-            ],
+    final seller = item['seller'] as Map?;
+    final image = item['coverUrl'] as String?;
+    final paused = item['paused'] == true;
+    final seconds = (item['remainingSeconds'] as num?)?.toInt() ?? 0;
+    final state = item['terminated'] == true || item['status'] == 'cancelled'
+        ? 'Đã hủy'
+        : paused
+        ? 'Tạm dừng'
+        : item['status'] == 'ended'
+        ? 'Đã kết thúc'
+        : seconds <= 0
+        ? 'Chờ máy chủ chốt phiên'
+        : 'Đang diễn ra';
+    final money = NumberFormat.decimalPattern('vi_VN')
+        .format((item['currentPrice'] as num?) ?? 0);
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextButton(
+            onPressed: onOpen,
+            child: const Text('Xem chi tiết phiên'),
           ),
-        ),
+          if (image != null && image.isNotEmpty)
+            Image.network(
+              image,
+              height: 170,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const SizedBox(
+                height: 100,
+                child: Icon(Icons.broken_image_outlined),
+              ),
+            )
+          else
+            const SizedBox(height: 100, child: Icon(Icons.image_outlined)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${item['title']}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                Text('${seller?['name'] ?? 'Người bán'} · $state'),
+                Text('$money đ', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  '${item['bidCount'] ?? 0} lượt đặt giá · Mã phiên ${item['id']}',
+                ),
+                if (item['joined'] == true)
+                  const Text('Bạn đã tham gia phiên này'),
+                if (item['leading'] == true) const Text('Bạn đang dẫn đầu'),
+                if (item['won'] == true) const Text('Bạn đã thắng phiên'),
+                if (item['status'] == 'active' && seconds > 0)
+                  Text(
+                    '${paused ? 'Thời gian còn lại khi dừng' : 'Còn lại lúc tải'}: '
+                    '${Duration(seconds: seconds).toString().split('.').first}',
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-    );
-  }
-
-  IconData _iconFor(String cat) {
-    switch (cat) {
-      case 'shoes':
-        return Icons.directions_walk;
-      case 'elec':
-        return Icons.camera_alt_outlined;
-      default:
-        return Icons.emoji_objects_outlined;
-    }
-  }
-}
-
-class _Chip extends StatelessWidget {
-  final String text;
-  final Color bg;
-  const _Chip({required this.text, required this.bg});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(11)),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }
