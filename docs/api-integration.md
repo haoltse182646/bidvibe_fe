@@ -60,7 +60,18 @@ Chưa có bằng chứng các endpoint này đã được tích hợp trên nhá
 
 ## Admin/ops
 
-Khang phụ trách xác nhận các API Admin trong task K01–K04. Nhóm Appraiser/Warehouse K05–K06 đang là phân công đề xuất. Dùng nhóm endpoint /api/admin, /api/appraisals, /api/warehouse trong BE theo role; không cho giao diện bidder tự gọi endpoint nội bộ.
+Checkout hiện có code gọi API cho K01–K06 qua `OpsRepository`; đây là trạng thái code local, không xác nhận Khang đã nhận task, đã kiểm thử BE thật, hoặc đã merge nhánh.
+
+| Task | Method và endpoint | Ghi chú FE |
+|---|---|---|
+| K01 | GET `/api/admin/dashboard`; GET `/api/admin/report/weekly` | Dashboard và báo cáo chỉ hiển thị số liệu BE; không còn số liệu/AI summary giả lập |
+| K02 | GET `/api/admin/flags`; POST `/api/admin/flags/:id/action` | Chi tiết lấy từ danh sách; action `pause`, `verify`, `safe`, `terminate`; terminate yêu cầu lý do |
+| K03 | GET/PATCH `/api/admin/accounts`; GET/POST/PATCH `/api/admin/ops-accounts` | Tài khoản bidder/seller và ops; trạng thái/quyền được BE xác thực |
+| K04 | GET `/api/admin/disputes`; POST `/api/admin/disputes/:id/resolve` | Resolution gửi đúng `refund` hoặc `keep`; ghi chú tùy chọn |
+| K05 | GET `/api/appraisals/queue`; GET `/api/appraisals/:listingId`; POST `/api/appraisals/:listingId/decision` | Queue `pending_appraisal` / `needs_info`; chi tiết gồm ảnh/lịch sử; decision `approve`, `reject`, `more_info` |
+| K06 | GET `/api/warehouse/orders`; POST `/api/warehouse/orders/:id/{receive,inspect,pack,ship,deliver}` | Chuyển trạng thái theo stage; kiểm định mismatch cần notes; gửi đi cần carrier/trackingCode |
+
+Các màn Admin/Appraiser/Warehouse đăng nhập qua ops và dùng token hiện tại. `OpsRepository` chuyển `UNAUTHORIZED` / `ACCOUNT_SUSPENDED` cho `RemoteAppStore` xử lý đăng xuất. Không có API lịch sử appraiser riêng hoặc audit Admin trong hợp đồng đang cung cấp nên các màn lịch sử/audit prototype không nằm trong điều hướng ops tích hợp. Không cho giao diện bidder gọi endpoint nội bộ.
 
 ## Socket
 
