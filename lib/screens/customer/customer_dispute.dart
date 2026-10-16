@@ -23,6 +23,7 @@ class _CustomerDisputeScreenState extends State<CustomerDisputeScreen> {
   final detailCtrl = TextEditingController();
   String? reason;
   int photos = 0;
+  bool _sending = false; // chặn bấm đúp: lần 2 sẽ báo DISPUTE_OPEN đè thông báo thành công
 
   static const _bidderReasons = ['Hàng không đúng mô tả', 'Hàng bị hư hỏng khi vận chuyển', 'Thiếu phụ kiện so với mô tả', 'Giao hàng quá chậm', 'Lý do khác'];
   static const _sellerReasons = ['Người mua từ chối nhận hàng', 'Người mua đòi huỷ đơn không lý do', 'Người mua không thanh toán đúng hạn', 'Thông tin giao hàng sai', 'Lý do khác'];
@@ -121,13 +122,14 @@ class _CustomerDisputeScreenState extends State<CustomerDisputeScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
           child: BigActionButton(
-            label: 'Gửi tranh chấp',
+            label: _sending ? 'Đang gửi…' : 'Gửi tranh chấp',
             background: AppColors.dangerStrong,
-            onPressed: reason == null
+            onPressed: reason == null || _sending
                 ? null
-                : () {
-                    final messenger = ScaffoldMessenger.of(context);
-                    context.read<AppStore>().raiseDispute(
+                : () async {
+                    final nav = Navigator.of(context);
+                    setState(() => _sending = true);
+                    final ok = await context.read<AppStore>().raiseDispute(
                           source: widget.source,
                           auctionId: widget.auctionId,
                           listingId: widget.listingId,
@@ -135,8 +137,13 @@ class _CustomerDisputeScreenState extends State<CustomerDisputeScreen> {
                           reason: reason!,
                           detail: detailCtrl.text,
                         );
-                    messenger.showSnackBar(const SnackBar(content: Text('Đã gửi tranh chấp. Ký quỹ được giữ lại cho tới khi Admin phán quyết.')));
-                    Navigator.of(context).pop();
+                    if (!mounted) return;
+                    // Thất bại: ở lại để giữ nội dung đã nhập (store đã hiện lý do).
+                    if (ok) {
+                      nav.pop();
+                    } else {
+                      setState(() => _sending = false);
+                    }
                   },
           ),
         ),

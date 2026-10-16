@@ -67,6 +67,14 @@ Hai người kiểm thử: bidder gửi báo cáo → Admin đọc đúng cờ �
 
 Nếu Admin khóa tài khoản bidder, kiểm tra app dừng socket, hết phiên và không giữ dữ liệu của tài khoản trước khi đăng nhập tài khoản khác.
 
+## Hiệu → Hào: những gì đã nối (bàn giao)
+
+- `BidderShell` truyền `onOrders` và `onOpenOrder` vào `AuthProfileScreen`; `BidderShell._open` mở `OrderDetailScreen` khi thông báo có `orderId` (nếu không truyền `onOpenTarget`). Đóng màn thì tải lại thông báo.
+- `OrdersScreen(api, onSessionExpired)` và `OrderDetailScreen(api, orderId, onSessionExpired)` nhận `ApiClient` dùng chung; hết phiên gọi `onSessionExpired` thay vì tự đăng xuất.
+- Chọn địa chỉ của đơn dùng `AddressBookScreen(selectionMode: true)`, gắn bằng `POST /api/orders/:id/shipping-address` rồi tải lại đơn; không giữ địa chỉ chỉ vì đã chọn.
+- Thông báo kiểu `dispute` và `listing` chưa có route (vẫn bottom sheet). Hào quyết định có mở `MyDisputesScreen` hay màn người bán.
+- Toast của store: thêm `StoreToastListener` trong `RootShell` để thông báo từ `AppStore.showMessage` hiện dưới dạng SnackBar. Màn nào có luồng thao tác dài nên dùng thông báo này thay vì tự dựng SnackBar.
+
 ## Hiệu ↔ Khang/người nhận ops
 
 - Seller submit tin → Appraiser xem đúng listingId và quyết định → bidder thấy phiên đúng trạng thái.
@@ -81,7 +89,7 @@ Ghi lại tài khoản theo role và ID dữ liệu thử qua kênh nhóm phù h
 | Bàn giao | Bên gửi → nhận | Trạng thái mốc hiện tại | PR/bằng chứng |
 |---|---|---|---|
 | Sổ địa chỉ dùng chung | Hào → Hiệu | Có bộ code QA; local đang ghép sau lỗi import | Chờ PR |
-| Màn chi tiết đơn và danh sách | Hiệu → Hào | Chờ xác nhận nhánh/màn thực tế | Chờ PR |
-| Màn tranh chấp | Hiệu → Hào | Chờ hợp đồng route | Chờ PR |
+| Màn chi tiết đơn và danh sách | Hiệu → Hào | Có code: `OrdersScreen`, `OrderDetailScreen`; đã nối vào `BidderShell` (Hồ sơ → Đơn hàng, thông báo `order`) | Nhánh `feature/orders-seller-disputes` |
+| Màn tranh chấp | Hiệu → Hào | Có code: `CustomerDisputeScreen` (tạo), `MyDisputesScreen` (danh sách); thông báo `dispute` / `listing` chưa có route | Nhánh `feature/orders-seller-disputes` |
 | Report ↔ cờ Admin | Hào ↔ Khang | Bidder có code; chờ kiểm thử xuyên role | Chờ PR/kết quả test |
 | Appraiser/Warehouse | Nhóm chốt người → cả nhóm | Đang là phân công đề xuất | Chờ chốt phạm vi |

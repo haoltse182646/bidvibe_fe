@@ -173,6 +173,16 @@ class AppStore extends ChangeNotifier {
     if (auditLogs.length > 300) auditLogs.removeRange(300, auditLogs.length);
   }
 
+  /// Gợi ý giá khởi điểm từ backend; null = dùng gợi ý mẫu của prototype.
+  /// Khi backend lỗi, RemoteAppStore hiện thông báo lý do rồi ném lại lỗi.
+  FutureOr<PriceSuggestion?> suggestStartingPrice({required String cat, required String cond}) => null;
+
+  /// Thông báo ngắn cho các module ngoài store (RemoteAppStore, màn hình).
+  void showMessage(String title, String body, {bool danger = false}) {
+    _showToast(title: title, body: body, danger: danger, success: !danger, seconds: danger ? 5 : 3);
+    notifyListeners();
+  }
+
   void _showToast({
     required String title,
     required String body,
@@ -447,7 +457,7 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Bidder hoặc Seller mở tranh chấp (Raise Dispute).
-  void raiseDispute({
+  FutureOr<bool> raiseDispute({
     required String source, // bidder | seller
     String? auctionId,
     String? listingId,
@@ -483,12 +493,12 @@ class AppStore extends ChangeNotifier {
     if (l != null) l.status = 'disputed';
     _log('admin', 'Mở tranh chấp', actor: who, ref: title);
     _showToast(title: 'Đã gửi tranh chấp', body: 'Ký quỹ được giữ lại. Admin sẽ phản hồi sớm.', success: true, seconds: 3);
-    notifyListeners();
+    notifyListeners();    return true;
   }
 
   // ================= Seller actions =================
 
-  void createListing({
+  FutureOr<bool> createListing({
     required String title,
     required String cat,
     required int start,
@@ -521,10 +531,11 @@ class AppStore extends ChangeNotifier {
     );
     _log('auction', 'Tạo phiên ký gửi', actor: myShop, ref: title, amount: start);
     notifyListeners();
+    return true;
   }
 
   /// Sửa tham số phiên (Edit Auction Parameters) — chỉ khi [SellerListing.canEdit].
-  bool updateListing(String id, {required String title, required String desc, required int start, required int durationHours, required String cond}) {
+  FutureOr<bool> updateListing(String id, {required String title, required String desc, required int start, required int durationHours, required String cond}) {
     final l = _listing(id);
     if (l == null || !l.canEdit) return false;
     l.title = title;
@@ -557,10 +568,10 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Người bán bổ sung ảnh/giấy tờ theo yêu cầu của thẩm định viên.
-  void sellerSubmitMoreInfo(String listingId, {int extraPhotos = 1}) {
+  FutureOr<bool> sellerSubmitMoreInfo(String listingId, {int extraPhotos = 1}) {
     final l = _listing(listingId);
     final it = _appraisalOfListing(listingId);
-    if (l == null) return;
+    if (l == null) return false;
     l.status = 'appraisal';
     l.requests = [];
     l.note = null;
@@ -570,14 +581,14 @@ class AppStore extends ChangeNotifier {
       it.photos += extraPhotos;
     }
     _log('auction', 'Bổ sung hồ sơ theo yêu cầu thẩm định', actor: l.seller, ref: l.title);
-    notifyListeners();
+    notifyListeners();    return true;
   }
 
   /// Người bán xác nhận đã gửi hàng đến kho (Ship Item to Warehouse).
-  void sellerMarkShipped(String listingId) {
+  FutureOr<void> sellerMarkShipped(String listingId) {
     final l = _listing(listingId);
     final sh = _shipment(listingId);
-    if (l == null || sh == null || sh.at != 1) return;
+    if (l == null || sh == null || sh.at != 1) return null;
     sh.at = 2;
     final a = _auction(l.auctionId);
     warehouseShipments.insert(

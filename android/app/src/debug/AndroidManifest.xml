@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Chỉ bản debug: cho phép gọi backend HTTP (localhost/LAN) khi phát triển. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

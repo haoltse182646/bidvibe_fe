@@ -10,7 +10,8 @@ import 'screens/seller/seller_shell.dart';
 import 'screens/appraiser/appraiser_shell.dart';
 import 'screens/warehouse/warehouse_shell.dart';
 import 'screens/admin/admin_shell.dart';
-import 'core/api_client.dart'; 
+import 'core/api_client.dart';
+import 'widgets/store_toast.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,7 +92,7 @@ class RootShell extends StatelessWidget {
           ),
         ],
       ),
-      body: SafeArea(top: false, child: _body(user.role)),
+      body: StoreToastListener(child: SafeArea(top: false, child: _body(user.role))),
     );
   }
 

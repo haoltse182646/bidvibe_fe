@@ -26,6 +26,27 @@ Mốc ghi nhận: **16/10/2026**. Đây là ảnh chụp tiến độ, không t�
 | Sổ địa chỉ | CRUD, mặc định, selectionMode, refresh Hồ sơ | 22 test mới đạt trên QA | Chép đủ file/test, analyzer và manual bản local sau lỗi import |
 | Tích hợp sau bán | Callback đã chuẩn bị | Chưa có bằng chứng ghép màn thật | Nhận màn và hợp đồng từ Hiệu |
 
+## Phần của Hiệu (nhánh `feature/orders-seller-disputes`)
+
+Kiểm thử thủ công chạy trên bản web (Playwright) với backend nối **DB Docker cục bộ** (bản sao một lần của Supabase), không dùng Supabase. Ngày 16/10/2026.
+
+| Task | Module | Màn / class | Kiểm thử có căn cứ | Việc tiếp theo |
+|---|---|---|---|---|
+| I01 | Danh sách đơn thắng | `OrdersScreen` | Chạy thật trên web; nhãn Chờ thanh toán / Hoàn tất / Đang tranh chấp / Quá hạn | Danh sách BE không trả `stage`, nhãn suy từ trạng thái thanh toán và giải ngân |
+| I02 | Gắn địa chỉ vào đơn | `OrderDetailScreen` + `AddressBookScreen` (selectionMode) | Chạy thật: chặn thanh toán khi thiếu địa chỉ, chọn địa chỉ rồi BE ghi `shipping_address_id` | Xử lý `ALREADY_SHIPPED` đã có thông báo, chưa thử bằng dữ liệu thật |
+| I03 | Thanh toán đơn thắng | `OrderDetailScreen` | Chạy thật: QR/ví, hộp xác nhận, không tự thử lại, khoá nút khi hết hạn | Cổng QR/card là mô phỏng của BE |
+| I04 | Theo dõi và xác nhận nhận hàng | `OrderDetailScreen` | Chạy thật qua cả chuỗi người bán → kho (gọi API) → xác nhận → `released` | Bước kho vận chưa thử qua giao diện |
+| I05 | Tin đăng của người bán | `SellerCreateScreen`, `SellerEditScreen`, `SellerListScreen` (dữ liệu thật qua `RemoteAppStore`) | Chạy thật: tạo tin kèm ảnh mẫu, bổ sung theo yêu cầu thẩm định, chống tạo trùng và tin nháp mồ côi | Ảnh vẫn là URL mẫu (chưa tải ảnh thật); gợi ý giá dùng `/api/ai/suggest-price` |
+| I06 | Báo gửi hàng về kho | `SellerShippingScreen` | Chạy thật: đơn chuyển `in_transit_to_warehouse` | — |
+| I07 | Tranh chấp phía người dùng | `CustomerDisputeScreen`, `MyDisputesScreen` | Chạy thật cả người mua và người bán; đơn chuyển `disputed`; gửi lỗi thì ở lại và giữ nội dung | Kiểm thử phía Admin xử lý tranh chấp chờ Khang |
+| I08 | Ghép thông báo | `BidderShell` | Thông báo kiểu `order` mở `OrderDetailScreen`; hồ sơ mở `OrdersScreen` | Thông báo `dispute` / `listing` vẫn là bottom sheet, chưa có route |
+
+Thay đổi dùng chung (cần Hào review): `lib/main.dart` (thêm `StoreToastListener` vì toast của store trước đó không có chỗ hiển thị), `lib/store.dart` (thêm `showMessage`, `suggestStartingPrice`; `updateListing`, `createListing`, `raiseDispute`, `sellerSubmitMoreInfo` trả `FutureOr` để chờ được), `lib/models.dart` (`SellerListing.editable`, `UserAccount.shop` không còn `final`, `PriceSuggestion`), `lib/core/remote_app_store.dart` (nạp dữ liệu người bán, ghi tin, tranh chấp), `android/app/src/debug/AndroidManifest.xml` (cho phép HTTP chỉ ở bản debug).
+
+Kiểm thử tự động của phần này: `test/order_flow_test.dart`, `test/seller_flow_test.dart`, `test/remote_store_seller_test.dart`, `test/order_live_test.dart` (chỉ chạy khi đặt `BACKEND_URL`, ghi vào DB Docker). Toàn bộ `flutter test`: 192 đạt, 2 bỏ qua (test với backend thật khi thiếu `BACKEND_URL`); `flutter analyze` không có lỗi.
+
+Chưa kiểm tra: người bán mở tranh chấp trên bản điện thoại thật; Admin xử lý tranh chấp rồi giao diện người mua cập nhật; bản release Android (manifest chính chưa khai báo quyền `INTERNET`, cần bổ sung trước khi build release).
+
 ## Giới hạn hiện tại
 
 - Tóm tắt đơn ở Hồ sơ có dữ liệu thật nhưng không thay cho module đơn/thanh toán đầy đủ.
@@ -57,7 +78,8 @@ Một kiểm tra xuất ảnh địa chỉ cũng đạt, nâng tổng lượt ch
 | Code Hào được commit/push | Chưa xác minh | Commit hoặc PR |
 | Đã merge develop | Chưa xác minh | PR merge commit |
 | Đã merge main | Chưa xác minh | PR merge commit và smoke test |
-| Module Hiệu/Khang | Chưa đọc nhánh riêng | Mỗi người cập nhật PR và trạng thái |
+| Module Hiệu | Có code và kiểm thử trên nhánh `feature/orders-seller-disputes` | Link PR và kết quả merge |
+| Module Khang | Chưa đọc nhánh riêng | Cập nhật PR và trạng thái |
 
 ## Nhật ký cập nhật tiếp theo
 
@@ -66,3 +88,4 @@ Mỗi thay đổi đáng kể thêm một hàng, giữ thông tin không nhạy 
 | Ngày | Task | Người | Thay đổi | Kiểm thử | PR/commit | Merge |
 |---|---|---|---|---|---|---|
 | 16/10/2026 | DOC | Hào | Chuẩn bị bộ docs FE và phân công để đưa vào repo | Đối chiếu source/bàn giao | Chưa commit tại mốc soạn | Chưa xác minh |
+| 16/10/2026 | I01–I08 | Hiệu | Đơn hàng, thanh toán, theo dõi, tin đăng và gửi kho của người bán, tranh chấp, toast của store, khung chờ | `flutter test` 192 đạt; chạy thật trên web với DB Docker | Nhánh `feature/orders-seller-disputes` | Chưa tạo PR |
