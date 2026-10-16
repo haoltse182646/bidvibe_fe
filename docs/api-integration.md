@@ -75,6 +75,8 @@ Các màn Admin/Appraiser/Warehouse đăng nhập qua ops và dùng token hiện
 
 ## Socket
 
+Bổ sung trong gói tích hợp Hào sau bản nền `ab15709`: thông báo có disputeId mở `DisputeDetailScreen` bằng GET `/api/disputes/mine`; phiên thắng dùng GET `/api/orders/mine` để tìm order.id theo auctionId. Không có endpoint mới. Ví/Hồ sơ tải lại qua các GET hiện có sau thông báo mới, reconnect, foreground và đóng màn nghiệp vụ. Chi tiết ở [hao-integration.md](hao-integration.md).
+
 | Sự kiện | Chiều | Hành vi FE |
 |---|---|---|
 | auction:join | FE → BE | Vào phòng phiên để nhận thay đổi; không đặt cọc |
