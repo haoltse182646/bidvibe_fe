@@ -456,4 +456,42 @@ void main() {
     expect(find.text('Phương thức'), findsNothing);
     expect(find.text('Theo dõi đơn'), findsOneWidget);
   });
+
+  widgetTest('đơn hoàn tất: mọi bước theo dõi đều có dấu tích, không còn bước "đang ở"', (t) async {
+    final api = ApiClient(
+      client: MockClient((r) async {
+        switch (r.url.path) {
+          case '/api/orders/120':
+            return ok(orderJson(payment: 'paid', shippingAddress: address));
+          case '/api/orders/120/tracking':
+            return ok(trackingJson(stage: 'completed', shipment: 'delivered', payout: 'released'));
+        }
+        return fail('NOT_FOUND', 'x', 404);
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    await pump(t, OrderDetailScreen(api: api, orderId: '120'));
+    await t.drag(find.byType(ListView).first, const Offset(0, -500));
+    await t.pump();
+    expect(find.byIcon(Icons.check_circle), findsNWidgets(8), reason: '8 bước, tất cả đã xong');
+    expect(find.byIcon(Icons.radio_button_checked), findsNothing);
+  });
+
+  widgetTest('đơn đang tranh chấp: nhãn đầu trang là "Đang tranh chấp", không phải giai đoạn giao hàng', (t) async {
+    final api = ApiClient(
+      client: MockClient((r) async {
+        switch (r.url.path) {
+          case '/api/orders/120':
+            return ok(orderJson(payment: 'paid', shippingAddress: address));
+          case '/api/orders/120/tracking':
+            return ok(trackingJson(stage: 'awaiting_seller_shipment', payout: 'disputed'));
+        }
+        return fail('NOT_FOUND', 'x', 404);
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    await pump(t, OrderDetailScreen(api: api, orderId: '120'));
+    expect(find.text('Đang tranh chấp'), findsOneWidget);
+    expect(find.text('Chờ người bán gửi kho'), findsOneWidget, reason: 'vẫn còn trong khối theo dõi, không còn là nhãn đầu trang');
+  });
 }

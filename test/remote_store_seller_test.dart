@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -174,6 +175,42 @@ void main() {
     first.complete(ok({'listings': [listing('1')]}));
     await slow;
     expect(store.sellerListings.map((l) => l.id), ['2'], reason: 'bỏ kết quả cũ');
+  });
+
+  test('đăng nhập người bán thật: bỏ dữ liệu mẫu, tải lỗi thì danh sách trống chứ không hiện hàng giả', () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final api = ApiClient(
+      client: MockClient((r) async {
+        switch (r.url.path) {
+          case '/api/auth/login':
+            return ok({'token': 'tok', 'role': 'seller', 'account': {'id': '9', 'fullName': 'Long'}});
+          case '/api/me':
+            return ok({'id': '9', 'fullName': 'Long', 'email': 'l@x.vn', 'role': 'seller'});
+        }
+        throw http.ClientException('offline'); // tải tin đăng / đơn bán thất bại
+      }),
+    );
+    final store = TestRemoteStore(api);
+    addTearDown(store.dispose);
+    expect(store.sellerListings, isNotEmpty, reason: 'store mẫu có sẵn dữ liệu giả của prototype');
+    await store.authenticate({'email': 'l@x.vn', 'password': 'x'});
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(store.currentUser?.role, 'seller');
+    expect(store.sellerListings, isEmpty, reason: 'không hiện dữ liệu mẫu như thể là dữ liệu thật');
+    expect(store.sellerShipments, isEmpty);
+    expect(store.sellerError, isNotNull);
+  });
+
+  testWidgets('bản thật không chạy mô phỏng: 1 phút trôi qua không có toast giả hay thay đổi dữ liệu mẫu', (t) async {
+    final store = TestRemoteStore(ApiClient(client: MockClient((_) async => fail('NOT_FOUND', 'x', 404))));
+    final before = store.auctions.map((a) => '${a.id}:${a.price}:${a.count}').toList();
+    var notified = 0;
+    store.addListener(() => notified++);
+    await t.pump(const Duration(seconds: 60));
+    expect(store.toastId, isNull, reason: 'không có "bị vượt giá" giả');
+    expect(store.auctions.map((a) => '${a.id}:${a.price}:${a.count}').toList(), before, reason: 'bot không đặt giá');
+    expect(notified, greaterThan(50), reason: 'vẫn có nhịp mỗi giây cho các đồng hồ đếm ngược');
+    store.dispose();
   });
 
   group('màn hình', () {

@@ -28,6 +28,11 @@ class RemoteAppStore extends AppStore {
     }
   }
 
+  // Dữ liệu và sự kiện thật đến từ BE; không chạy bot/giả lập của store prototype
+  // (nếu chạy, toast "bị vượt giá" giả sẽ hiện trong phiên thật).
+  @override
+  bool get simulatesMarket => false;
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -177,7 +182,14 @@ class RemoteAppStore extends AppStore {
   final DraftProgress _draft = DraftProgress();
 
   void _afterSignIn() {
-    if (currentUser?.role == 'seller') unawaited(loadSeller());
+    if (currentUser?.role == 'seller') {
+      // Bỏ dữ liệu mẫu của prototype trong store: người bán thật chỉ được thấy dữ liệu từ BE,
+      // kể cả khi lần tải đầu thất bại (khi đó thấy danh sách trống kèm lỗi, không phải hàng giả).
+      sellerListings.clear();
+      sellerShipments.clear();
+      _orderByListing.clear();
+      unawaited(loadSeller());
+    }
   }
 
   /// Thông báo ngắn; bỏ qua khi store đã huỷ (thao tác bất đồng bộ về muộn).

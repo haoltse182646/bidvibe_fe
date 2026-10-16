@@ -41,9 +41,11 @@ Kiểm thử thủ công chạy trên bản web (Playwright) với backend nối
 | I07 | Tranh chấp phía người dùng | `CustomerDisputeScreen`, `MyDisputesScreen` | Chạy thật cả người mua và người bán; đơn chuyển `disputed`; gửi lỗi thì ở lại và giữ nội dung | Kiểm thử phía Admin xử lý tranh chấp chờ Khang |
 | I08 | Ghép thông báo | `BidderShell` | Thông báo kiểu `order` mở `OrderDetailScreen`; hồ sơ mở `OrdersScreen` | Thông báo `dispute` / `listing` vẫn là bottom sheet, chưa có route |
 
-Thay đổi dùng chung (cần Hào review): `lib/main.dart` (thêm `StoreToastListener` vì toast của store trước đó không có chỗ hiển thị), `lib/store.dart` (thêm `showMessage`, `suggestStartingPrice`; `updateListing`, `createListing`, `raiseDispute`, `sellerSubmitMoreInfo` trả `FutureOr` để chờ được), `lib/models.dart` (`SellerListing.editable`, `UserAccount.shop` không còn `final`, `PriceSuggestion`), `lib/core/remote_app_store.dart` (nạp dữ liệu người bán, ghi tin, tranh chấp), `android/app/src/debug/AndroidManifest.xml` (cho phép HTTP chỉ ở bản debug).
+Thay đổi dùng chung (cần Hào review): `lib/main.dart` (thêm `StoreToastListener` vì toast của store trước đó không có chỗ hiển thị), `lib/store.dart` (thêm `showMessage`, `suggestStartingPrice`; `updateListing`, `createListing`, `raiseDispute`, `sellerSubmitMoreInfo` trả `FutureOr` để chờ được; thêm `simulatesMarket`, bản chạy với backend thật tắt vòng mô phỏng bot/tự đóng phiên của store cũ, vẫn giữ nhịp cập nhật mỗi giây cho đồng hồ đếm ngược), `lib/models.dart` (`SellerListing.editable`, `UserAccount.shop` không còn `final`, `PriceSuggestion`), `lib/core/remote_app_store.dart` (nạp dữ liệu người bán, ghi tin, tranh chấp), `android/app/src/debug/AndroidManifest.xml` (cho phép HTTP chỉ ở bản debug).
 
-Kiểm thử tự động của phần này: `test/order_flow_test.dart`, `test/seller_flow_test.dart`, `test/remote_store_seller_test.dart`, `test/order_live_test.dart` (chỉ chạy khi đặt `BACKEND_URL`, ghi vào DB Docker). Toàn bộ `flutter test`: 192 đạt, 2 bỏ qua (test với backend thật khi thiếu `BACKEND_URL`); `flutter analyze` không có lỗi.
+Kiểm thử tự động của phần này: `test/order_flow_test.dart`, `test/seller_flow_test.dart`, `test/remote_store_seller_test.dart`, `test/order_live_test.dart` (chỉ chạy khi đặt `BACKEND_URL`, ghi vào DB Docker). Toàn bộ `flutter test`: 196 đạt, 2 bỏ qua (test với backend thật khi thiếu `BACKEND_URL`); `flutter analyze` không có lỗi.
+
+Lưu ý cho màn còn dùng dữ liệu mẫu (Admin, thẩm định, kho): vì `RemoteAppStore` không còn chạy mô phỏng, dữ liệu mẫu của các màn này không tự thay đổi theo thời gian nữa; chỉ đổi khi thao tác hoặc khi nối API thật.
 
 Chưa kiểm tra: người bán mở tranh chấp trên bản điện thoại thật; Admin xử lý tranh chấp rồi giao diện người mua cập nhật; bản release Android (manifest chính chưa khai báo quyền `INTERNET`, cần bổ sung trước khi build release).
 
@@ -88,4 +90,4 @@ Mỗi thay đổi đáng kể thêm một hàng, giữ thông tin không nhạy 
 | Ngày | Task | Người | Thay đổi | Kiểm thử | PR/commit | Merge |
 |---|---|---|---|---|---|---|
 | 16/10/2026 | DOC | Hào | Chuẩn bị bộ docs FE và phân công để đưa vào repo | Đối chiếu source/bàn giao | Chưa commit tại mốc soạn | Chưa xác minh |
-| 16/10/2026 | I01–I08 | Hiệu | Đơn hàng, thanh toán, theo dõi, tin đăng và gửi kho của người bán, tranh chấp, toast của store, khung chờ | `flutter test` 192 đạt; chạy thật trên web với DB Docker | Nhánh `feature/orders-seller-disputes` | Chưa tạo PR |
+| 16/10/2026 | I01–I08 | Hiệu | Đơn hàng, thanh toán, theo dõi, tin đăng và gửi kho của người bán, tranh chấp, toast của store, khung chờ | `flutter test` 196 đạt; chạy thật trên web với DB Docker | Nhánh `feature/orders-seller-disputes` | Chưa tạo PR |

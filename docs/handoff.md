@@ -73,6 +73,7 @@ Nếu Admin khóa tài khoản bidder, kiểm tra app dừng socket, hết phiê
 - `OrdersScreen(api, onSessionExpired)` và `OrderDetailScreen(api, orderId, onSessionExpired)` nhận `ApiClient` dùng chung; hết phiên gọi `onSessionExpired` thay vì tự đăng xuất.
 - Chọn địa chỉ của đơn dùng `AddressBookScreen(selectionMode: true)`, gắn bằng `POST /api/orders/:id/shipping-address` rồi tải lại đơn; không giữ địa chỉ chỉ vì đã chọn.
 - Thông báo kiểu `dispute` và `listing` chưa có route (vẫn bottom sheet). Hào quyết định có mở `MyDisputesScreen` hay màn người bán.
+- `RemoteAppStore` đặt `simulatesMarket => false`: store cũ không còn chạy bot đặt giá, tự đóng phiên, tự giải ngân trên dữ liệu mẫu (toast "bị vượt giá" giả từng hiện ra trong phiên thật). Màn nào còn dựa vào dữ liệu mẫu tự chạy (Admin, thẩm định, kho) cần nối API thật hoặc tự cập nhật sau thao tác.
 - Toast của store: thêm `StoreToastListener` trong `RootShell` để thông báo từ `AppStore.showMessage` hiện dưới dạng SnackBar. Màn nào có luồng thao tác dài nên dùng thông báo này thay vì tự dựng SnackBar.
 
 ## Hiệu ↔ Khang/người nhận ops

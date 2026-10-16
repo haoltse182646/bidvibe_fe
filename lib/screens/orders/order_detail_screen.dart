@@ -527,8 +527,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             for (var i = 1; i < orderStages.length; i++)
               _step(
                 stageLabel(orderStages[i]),
-                done: i < current,
-                active: i == current,
+                // Đơn đã hoàn tất: bước cuối cũng là "đã xong", không còn "đang ở bước này".
+                done: i < current || (i == current && o.stage == 'completed'),
+                active: i == current && o.stage != 'completed',
               ),
           if (o.warehouseCode != null) ...[
             const Divider(height: 24),

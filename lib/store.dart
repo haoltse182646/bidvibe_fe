@@ -1010,15 +1010,22 @@ class AppStore extends ChangeNotifier {
 
   // ================= System Scheduler: mô phỏng real-time =================
 
+  /// Có chạy vòng mô phỏng thị trường (bot đặt giá, tự đóng phiên, tự giải ngân…) trên dữ liệu mẫu hay không.
+  /// Bản chạy với backend thật tắt vòng này: dữ liệu và sự kiện thật đến từ BE, không phải từ bot giả.
+  bool get simulatesMarket => true;
+
   void _tick() {
-    final now = DateTime.now();
-    _freezePaused();
-    _botBids(now);
-    _autoCloseExpired(now);
-    _processOtherWinnerPayments(now);
-    _processPaymentTimeouts(now);
-    _autoReleaseEscrow(now);
-    _syncListings();
+    if (simulatesMarket) {
+      final now = DateTime.now();
+      _freezePaused();
+      _botBids(now);
+      _autoCloseExpired(now);
+      _processOtherWinnerPayments(now);
+      _processPaymentTimeouts(now);
+      _autoReleaseEscrow(now);
+      _syncListings();
+    }
+    // Vẫn báo thay đổi mỗi giây: các đồng hồ đếm ngược dựa vào nhịp này để vẽ lại.
     notifyListeners();
   }
 

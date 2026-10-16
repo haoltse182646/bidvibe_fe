@@ -42,6 +42,8 @@ String stageLabel(String? stage) => switch (stage) {
 
 /// Trạng thái hiển thị trong danh sách khi chưa có giai đoạn chi tiết.
 String orderStatusLabel(Order o) {
+  // Tranh chấp lấn át giai đoạn giao hàng: đơn đang bị giữ ký quỹ chờ Admin.
+  if (o.paid && o.disputed) return 'Đang tranh chấp';
   if (o.stage != null) return stageLabel(o.stage);
   // Danh sách đơn không có giai đoạn: đơn đã trả thì dựa vào trạng thái giải ngân.
   if (o.paid) {
