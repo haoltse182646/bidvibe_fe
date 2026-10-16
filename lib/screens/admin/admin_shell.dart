@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import '../../store.dart';
 import '../../theme.dart';
-import 'admin_dashboard.dart';
-import 'admin_flags.dart';
-import 'admin_disputes.dart';
-import 'admin_report.dart';
-import 'admin_accounts.dart';
+import 'admin_ops_overview.dart';
+import 'admin_ops_cases.dart';
+import 'admin_ops_accounts.dart';
 
 /// Khung điều hướng Admin: 5 tab dưới cùng (Tổng quan, Cờ, Tranh chấp,
 /// Báo cáo, Tài khoản) — cùng kiểu điều hướng bottom-nav như 4 vai trò
@@ -24,17 +19,15 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.watch<AppStore>();
-
     return Scaffold(
       body: IndexedStack(
         index: tab,
         children: const [
-          AdminDashboardScreen(),
-          AdminFlagsScreen(),
-          AdminDisputesScreen(),
-          AdminReportScreen(),
-          AdminAccountsScreen(),
+          AdminOpsDashboardScreen(),
+          AdminOpsFlagsScreen(),
+          AdminOpsDisputesScreen(),
+          AdminOpsReportScreen(),
+          AdminOpsAccountsScreen(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -44,16 +37,8 @@ class _AdminShellState extends State<AdminShell> {
         indicatorColor: AppColors.progressBg,
         destinations: [
           const NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: 'Tổng quan'),
-          NavigationDestination(
-            icon: Badge(label: Text('${store.openFlagsCount}'), isLabelVisible: store.openFlagsCount > 0, child: const Icon(Icons.flag_outlined)),
-            selectedIcon: Badge(label: Text('${store.openFlagsCount}'), isLabelVisible: store.openFlagsCount > 0, child: const Icon(Icons.flag)),
-            label: 'Cờ',
-          ),
-          NavigationDestination(
-            icon: Badge(label: Text('${store.openDisputesCount}'), isLabelVisible: store.openDisputesCount > 0, child: const Icon(Icons.gavel_outlined)),
-            selectedIcon: Badge(label: Text('${store.openDisputesCount}'), isLabelVisible: store.openDisputesCount > 0, child: const Icon(Icons.gavel)),
-            label: 'Tranh chấp',
-          ),
+          const NavigationDestination(icon: Icon(Icons.flag_outlined), selectedIcon: Icon(Icons.flag), label: 'Cờ'),
+          const NavigationDestination(icon: Icon(Icons.gavel_outlined), selectedIcon: Icon(Icons.gavel), label: 'Tranh chấp'),
           const NavigationDestination(icon: Icon(Icons.description_outlined), selectedIcon: Icon(Icons.description), label: 'Báo cáo'),
           const NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Tài khoản'),
         ],
