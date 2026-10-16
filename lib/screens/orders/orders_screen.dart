@@ -11,8 +11,13 @@ import 'order_labels.dart';
 /// I01 — đơn thắng của người mua. Chạm một đơn để mở chi tiết theo orderId thật.
 class OrdersScreen extends StatefulWidget {
   final ApiClient api;
+  final Listenable? refreshSignal;
   final void Function(ApiException error)? onSessionExpired;
-  const OrdersScreen({super.key, required this.api, this.onSessionExpired});
+  const OrdersScreen(
+      {super.key,
+      required this.api,
+      this.onSessionExpired,
+      this.refreshSignal});
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -57,6 +62,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         builder: (_) => OrderDetailScreen(
           api: widget.api,
           orderId: o.id,
+          refreshSignal: widget.refreshSignal,
           onSessionExpired: widget.onSessionExpired,
         ),
       ),
@@ -79,6 +85,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               MaterialPageRoute<void>(
                 builder: (_) => MyDisputesScreen(
                   api: widget.api,
+                  refreshSignal: widget.refreshSignal,
                   onSessionExpired: widget.onSessionExpired,
                 ),
               ),
@@ -107,7 +114,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
           const SizedBox(height: 12),
           Center(
-            child: OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
+            child:
+                OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
           ),
         ],
       );
@@ -129,7 +137,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
       padding: const EdgeInsets.all(16),
       itemCount: _orders.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) => _OrderTile(order: _orders[i], onTap: () => _open(_orders[i])),
+      itemBuilder: (_, i) =>
+          _OrderTile(order: _orders[i], onTap: () => _open(_orders[i])),
     );
   }
 }
@@ -178,7 +187,9 @@ class _OrderTile extends StatelessWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            orderMoney(order.awaitingPayment ? order.amountToPay : order.finalPrice),
+                            orderMoney(order.awaitingPayment
+                                ? order.amountToPay
+                                : order.finalPrice),
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 13,
@@ -199,4 +210,3 @@ class _OrderTile extends StatelessWidget {
     );
   }
 }
-

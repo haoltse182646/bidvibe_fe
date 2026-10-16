@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/deferred_refresh.dart';
 import '../../core/remote_app_store.dart';
 import '../../features/profile/profile_repository.dart';
 import '../../features/addresses/address_repository.dart';
@@ -22,6 +23,7 @@ class AuthProfileScreen extends StatefulWidget {
   final Future<XFile?> Function()? pickImage;
   final VoidCallback? onAddresses, onOrders, onSupport;
   final Future<void> Function(String orderId)? onOpenOrder;
+  final Listenable? refreshSignal;
   const AuthProfileScreen({
     super.key,
     this.repository,
@@ -30,12 +32,21 @@ class AuthProfileScreen extends StatefulWidget {
     this.onOrders,
     this.onSupport,
     this.onOpenOrder,
+    this.refreshSignal,
   });
   @override
   State<AuthProfileScreen> createState() => _AuthProfileScreenState();
 }
 
-class _AuthProfileScreenState extends State<AuthProfileScreen> {
+class _AuthProfileScreenState extends State<AuthProfileScreen>
+    with DeferredRefresh<AuthProfileScreen> {
+  @override
+  Listenable? get refreshSignal => widget.refreshSignal;
+  @override
+  bool get canRefresh => _active && !_working && !_editing && !_passwordOpen;
+  @override
+  Future<void> refreshData() => _load();
+  bool _fetching = false;
   final _form = GlobalKey<FormState>(), _passwordForm = GlobalKey<FormState>();
   final _name = TextEditingController(),
       _phone = TextEditingController(),
@@ -127,9 +138,10 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
   Future<void> _load() async {
-    if (_saving || _uploading || _changing) {
+    if (_fetching || _saving || _uploading || _changing) {
       return;
     }
+    _fetching = true;
     setState(() {
       _loading = true;
       _error = null;
@@ -152,8 +164,10 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
         setState(() => _error = _message(e));
       }
     } finally {
+      _fetching = false;
       if (mounted) {
         setState(() => _loading = false);
+        drainDataRefresh();
       }
     }
   }
@@ -272,6 +286,7 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
     } finally {
       if (mounted) {
         setState(() => _saving = false);
+        drainDataRefresh();
       }
     }
   }
@@ -285,12 +300,11 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
       _error = null;
     });
     try {
-      final file =
-          await (widget.pickImage?.call() ??
-              ImagePicker().pickImage(
-                source: ImageSource.gallery,
-                requestFullMetadata: false,
-              ));
+      final file = await (widget.pickImage?.call() ??
+          ImagePicker().pickImage(
+            source: ImageSource.gallery,
+            requestFullMetadata: false,
+          ));
       if (!_active || file == null) {
         return;
       }
@@ -309,6 +323,7 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
     } finally {
       if (mounted) {
         setState(() => _uploading = false);
+        drainDataRefresh();
       }
     }
   }
@@ -381,6 +396,7 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
       } finally {
         if (mounted) {
           setState(() => _uploading = false);
+          drainDataRefresh();
         }
       }
     } on MissingPluginException {
@@ -434,6 +450,7 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
     } finally {
       if (mounted) {
         setState(() => _changing = false);
+        drainDataRefresh();
       }
     }
   }
@@ -446,78 +463,81 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
     bool obscure = false,
     int? maxLength,
     TextInputType? keyboardType,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FieldLabel(label),
-        TextFormField(
-          key: ValueKey(key),
-          controller: controller,
-          enabled: !_working && !_uncertainProfile && !_uncertainPassword,
-          obscureText: obscure,
-          autocorrect: !obscure,
-          enableSuggestions: !obscure,
-          maxLength: maxLength,
-          keyboardType: keyboardType,
-          decoration: appInputDecoration(null),
-          validator: validator,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            FieldLabel(label),
+            TextFormField(
+              key: ValueKey(key),
+              controller: controller,
+              enabled: !_working && !_uncertainProfile && !_uncertainPassword,
+              obscureText: obscure,
+              autocorrect: !obscure,
+              enableSuggestions: !obscure,
+              maxLength: maxLength,
+              keyboardType: keyboardType,
+              decoration: appInputDecoration(null),
+              validator: validator,
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
   Widget _card({
     required Widget child,
     EdgeInsets padding = const EdgeInsets.all(14),
-  }) => Container(
-    width: double.infinity,
-    padding: padding,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: Material(type: MaterialType.transparency, child: child),
-  );
+  }) =>
+      Container(
+        width: double.infinity,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Material(type: MaterialType.transparency, child: child),
+      );
   Widget _kv(String name, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(
-            name,
-            style: const TextStyle(fontSize: 13, color: AppColors.muted),
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 110,
+              child: Text(
+                name,
+                style: const TextStyle(fontSize: 13, color: AppColors.muted),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-        ),
-      ],
-    ),
-  );
+      );
   Widget _heading(String title) => Text(
-    title,
-    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-  );
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      );
   Widget _errorBox(String message) => Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: AppColors.dangerBg,
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Text(
-      message,
-      style: const TextStyle(fontSize: 12, color: AppColors.dangerStrong),
-    ),
-  );
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.dangerBg,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          message,
+          style: const TextStyle(fontSize: 12, color: AppColors.dangerStrong),
+        ),
+      );
   Widget _avatar(String? url, String name) {
     final initial = name.trim().isEmpty
         ? '?'
@@ -593,16 +613,17 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
   String _money(dynamic value) =>
       '${NumberFormat.decimalPattern('vi_VN').format(value is num ? value : 0)} đ';
   String _paymentLabel(dynamic status) => switch (status) {
-    'paid' => 'Đã thanh toán',
-    'awaiting_payment' => 'Chờ thanh toán',
-    'expired' => 'Quá hạn thanh toán',
-    'refunded' => 'Đã hoàn tiền',
-    'cancelled' => 'Đã hủy',
-    _ => 'Đang cập nhật',
-  };
+        'paid' => 'Đã thanh toán',
+        'awaiting_payment' => 'Chờ thanh toán',
+        'expired' => 'Quá hạn thanh toán',
+        'refunded' => 'Đã hoàn tiền',
+        'cancelled' => 'Đã hủy',
+        _ => 'Đang cập nhật',
+      };
   Future<void> _openOrder(Map<String, dynamic> order) async {
     if (widget.onOpenOrder != null) {
       await widget.onOpenOrder!(order['id'].toString());
+      if (_active) requestDataRefresh();
       return;
     }
     await showModalBottomSheet<void>(
@@ -635,90 +656,151 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
   }
 
   Widget _profileFields(ProfileSnapshot profile) => Form(
-    key: _form,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _field(
-          'Họ và tên',
-          _name,
-          'profile.name',
-          maxLength: 100,
-          validator: ProfileRepository.nameError,
-        ),
-        _field(
-          'Số điện thoại',
-          _phone,
-          'profile.phone',
-          maxLength: 20,
-          validator: ProfileRepository.phoneError,
-          keyboardType: TextInputType.phone,
-        ),
-        if (profile.role == 'seller')
-          _field(
-            'Tên gian hàng',
-            _shop,
-            'profile.shop',
-            maxLength: 100,
-            validator: ProfileRepository.nameError,
-          ),
-        Row(
+        key: _form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _working || _uncertainProfile ? null : _chooseAvatar,
-                icon: const Icon(Icons.photo_library_outlined, size: 18),
-                label: const Text('Chọn ảnh đại diện'),
-              ),
+            _field(
+              'Họ và tên',
+              _name,
+              'profile.name',
+              maxLength: 100,
+              validator: ProfileRepository.nameError,
             ),
-            if (_draftAvatar != null)
-              IconButton(
-                tooltip: 'Xóa ảnh đại diện',
-                onPressed: _working || _uncertainProfile
-                    ? null
-                    : () => setState(() => _draftAvatar = null),
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: AppColors.dangerStrong,
-                ),
+            _field(
+              'Số điện thoại',
+              _phone,
+              'profile.phone',
+              maxLength: 20,
+              validator: ProfileRepository.phoneError,
+              keyboardType: TextInputType.phone,
+            ),
+            if (profile.role == 'seller')
+              _field(
+                'Tên gian hàng',
+                _shop,
+                'profile.shop',
+                maxLength: 100,
+                validator: ProfileRepository.nameError,
               ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'JPEG, PNG hoặc WEBP · tối đa 5 MB. Bấm Lưu để cập nhật ảnh.',
-          style: TextStyle(fontSize: 12, color: AppColors.muted),
-        ),
-        const SizedBox(height: 14),
-        if (_error != null) _errorBox(_error!),
-        if (_uncertainProfile)
-          TextButton(
-            onPressed: _working ? null : _load,
-            child: const Text('Kiểm tra hồ sơ đã lưu'),
-          ),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _working || _uncertainProfile
-                    ? null
-                    : () => setState(() {
-                        _editing = false;
-                        _error = null;
-                      }),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        _working || _uncertainProfile ? null : _chooseAvatar,
+                    icon: const Icon(Icons.photo_library_outlined, size: 18),
+                    label: const Text('Chọn ảnh đại diện'),
                   ),
                 ),
-                child: const Text('Huỷ'),
-              ),
+                if (_draftAvatar != null)
+                  IconButton(
+                    tooltip: 'Xóa ảnh đại diện',
+                    onPressed: _working || _uncertainProfile
+                        ? null
+                        : () => setState(() => _draftAvatar = null),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.dangerStrong,
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: FilledButton(
-                onPressed: _working || _uncertainProfile ? null : _save,
+            const SizedBox(height: 6),
+            const Text(
+              'JPEG, PNG hoặc WEBP · tối đa 5 MB. Bấm Lưu để cập nhật ảnh.',
+              style: TextStyle(fontSize: 12, color: AppColors.muted),
+            ),
+            const SizedBox(height: 14),
+            if (_error != null) _errorBox(_error!),
+            if (_uncertainProfile)
+              TextButton(
+                onPressed: _working ? null : _load,
+                child: const Text('Kiểm tra hồ sơ đã lưu'),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _working || _uncertainProfile
+                        ? null
+                        : () {
+                            setState(() {
+                              _editing = false;
+                              _error = null;
+                            });
+                            drainDataRefresh();
+                          },
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Huỷ'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _working || _uncertainProfile ? null : _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(46),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      _saving ? 'Đang lưu…' : 'Lưu',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+  Widget _passwordFields() => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Form(
+          key: _passwordForm,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _field(
+                'Mật khẩu hiện tại',
+                _current,
+                'profile.currentPassword',
+                obscure: true,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Nhập mật khẩu hiện tại.'
+                    : null,
+              ),
+              _field(
+                'Mật khẩu mới',
+                _next,
+                'profile.newPassword',
+                obscure: true,
+                validator: (value) =>
+                    value == null || value.length < 6 || value.length > 72
+                        ? 'Mật khẩu mới cần từ 6 đến 72 ký tự.'
+                        : null,
+              ),
+              _field(
+                'Nhập lại mật khẩu mới',
+                _confirm,
+                'profile.confirmPassword',
+                obscure: true,
+                validator: (value) =>
+                    value != _next.text ? 'Mật khẩu nhập lại chưa khớp.' : null,
+              ),
+              if (_passwordError != null) _errorBox(_passwordError!),
+              FilledButton(
+                onPressed:
+                    _working || _uncertainPassword ? null : _changePassword,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
@@ -727,71 +809,15 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  _saving ? 'Đang lưu…' : 'Lưu',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                child: const Text(
+                  'Cập nhật mật khẩu',
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ],
-    ),
-  );
-  Widget _passwordFields() => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-    child: Form(
-      key: _passwordForm,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _field(
-            'Mật khẩu hiện tại',
-            _current,
-            'profile.currentPassword',
-            obscure: true,
-            validator: (value) => value == null || value.isEmpty
-                ? 'Nhập mật khẩu hiện tại.'
-                : null,
-          ),
-          _field(
-            'Mật khẩu mới',
-            _next,
-            'profile.newPassword',
-            obscure: true,
-            validator: (value) =>
-                value == null || value.length < 6 || value.length > 72
-                ? 'Mật khẩu mới cần từ 6 đến 72 ký tự.'
-                : null,
-          ),
-          _field(
-            'Nhập lại mật khẩu mới',
-            _confirm,
-            'profile.confirmPassword',
-            obscure: true,
-            validator: (value) =>
-                value != _next.text ? 'Mật khẩu nhập lại chưa khớp.' : null,
-          ),
-          if (_passwordError != null) _errorBox(_passwordError!),
-          FilledButton(
-            onPressed: _working || _uncertainPassword ? null : _changePassword,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(46),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Cập nhật mật khẩu',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+      );
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AppStore>().currentUser;
@@ -808,9 +834,8 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
       child: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: _working || _editing || _passwordOpen
-              ? () async {}
-              : _load,
+          onRefresh:
+              _working || _editing || _passwordOpen ? () async {} : _load,
           child: ListView(
             key: const ValueKey('profile.scroll'),
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
@@ -916,8 +941,7 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
                   Expanded(child: _heading('Thông tin cá nhân')),
                   if (!_editing)
                     TextButton.icon(
-                      onPressed:
-                          _working ||
+                      onPressed: _working ||
                               profile == null ||
                               _uncertainProfile ||
                               _uncertainPassword ||
@@ -971,107 +995,111 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
                           ),
                         )
                       : _ordersError != null
-                      ? Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _ordersError!,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.dangerStrong,
-                                ),
+                          ? Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _ordersError!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.dangerStrong,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: _working ? null : _load,
+                                    child: const Text('Thử tải lại đơn hàng'),
+                                  ),
+                                ],
                               ),
-                              TextButton(
-                                onPressed: _working ? null : _load,
-                                child: const Text('Thử tải lại đơn hàng'),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _orders.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: Text(
-                            'Bạn chưa thắng phiên nào.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            for (
-                              var i = 0;
-                              i < _orders.length && i < 3;
-                              i++
-                            ) ...[
-                              if (i != 0) const Divider(height: 1),
-                              ListTile(
-                                contentPadding: const EdgeInsets.all(14),
-                                leading: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.progressBg,
-                                    borderRadius: BorderRadius.circular(10),
+                            )
+                          : _orders.isEmpty
+                              ? const Padding(
+                                  padding: EdgeInsets.all(14),
+                                  child: Text(
+                                    'Bạn chưa thắng phiên nào.',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.muted,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.inventory_2_outlined,
-                                    color: AppColors.accent,
-                                  ),
-                                ),
-                                title: Text(
-                                  _orders[i]['title']?.toString() ??
-                                      'Đơn hàng #${_orders[i]['id']}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                )
+                              : Column(
                                   children: [
-                                    const SizedBox(height: 4),
-                                    StatusPill(
-                                      label: _paymentLabel(
-                                        _orders[i]['paymentStatus'],
+                                    for (var i = 0;
+                                        i < _orders.length && i < 3;
+                                        i++) ...[
+                                      if (i != 0) const Divider(height: 1),
+                                      ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.all(14),
+                                        leading: Container(
+                                          width: 44,
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.progressBg,
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: const Icon(
+                                            Icons.inventory_2_outlined,
+                                            color: AppColors.accent,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          _orders[i]['title']?.toString() ??
+                                              'Đơn hàng #${_orders[i]['id']}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(height: 4),
+                                            StatusPill(
+                                              label: _paymentLabel(
+                                                _orders[i]['paymentStatus'],
+                                              ),
+                                              tone: _orders[i]
+                                                          ['paymentStatus'] ==
+                                                      'paid'
+                                                  ? StatusTone.success
+                                                  : StatusTone.pending,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _money(_orders[i]['finalPrice']),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.muted,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        trailing: const Icon(
+                                          Icons.chevron_right,
+                                          color: AppColors.muted,
+                                        ),
+                                        onTap: _working
+                                            ? null
+                                            : () => _openOrder(_orders[i]),
                                       ),
-                                      tone:
-                                          _orders[i]['paymentStatus'] == 'paid'
-                                          ? StatusTone.success
-                                          : StatusTone.pending,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _money(_orders[i]['finalPrice']),
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.muted,
+                                    ],
+                                    if (widget.onOrders != null)
+                                      TextButton(
+                                        onPressed:
+                                            _working ? null : widget.onOrders,
+                                        child:
+                                            const Text('Xem tất cả đơn hàng'),
                                       ),
-                                    ),
                                   ],
                                 ),
-                                trailing: const Icon(
-                                  Icons.chevron_right,
-                                  color: AppColors.muted,
-                                ),
-                                onTap: _working
-                                    ? null
-                                    : () => _openOrder(_orders[i]),
-                              ),
-                            ],
-                            if (widget.onOrders != null)
-                              TextButton(
-                                onPressed: _working ? null : widget.onOrders,
-                                child: const Text('Xem tất cả đơn hàng'),
-                              ),
-                          ],
-                        ),
                 ),
               ],
               const SizedBox(height: 22),
@@ -1122,11 +1150,14 @@ class _AuthProfileScreenState extends State<AuthProfileScreen> {
                     ListTile(
                       onTap: _working || _editing || _uncertainPassword
                           ? null
-                          : () => setState(() {
-                              _passwordOpen = !_passwordOpen;
-                              _passwordError = null;
-                              _clearPasswords();
-                            }),
+                          : () {
+                              setState(() {
+                                _passwordOpen = !_passwordOpen;
+                                _passwordError = null;
+                                _clearPasswords();
+                              });
+                              drainDataRefresh();
+                            },
                       title: const Text(
                         'Đổi mật khẩu',
                         style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
+import '../../core/deferred_refresh.dart';
 import '../../features/addresses/address_repository.dart';
 import '../../features/orders/order_repository.dart';
 import '../../features/wallet/wallet_repository.dart';
@@ -16,11 +17,13 @@ import 'order_labels.dart';
 class OrderDetailScreen extends StatefulWidget {
   final ApiClient api;
   final String orderId;
+  final Listenable? refreshSignal;
   final void Function(ApiException error)? onSessionExpired;
   const OrderDetailScreen({
     super.key,
     required this.api,
     required this.orderId,
+    this.refreshSignal,
     this.onSessionExpired,
   });
 
@@ -28,7 +31,20 @@ class OrderDetailScreen extends StatefulWidget {
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen>
+    with DeferredRefresh<OrderDetailScreen>, WidgetsBindingObserver {
+  late final String? _token;
+  late final String _baseUrl;
+  bool _fetching = false;
+  bool get _active =>
+      mounted && widget.api.token == _token && ApiClient.baseUrl == _baseUrl;
+  bool get _locked => _busy || _loading || _error != null || !_active;
+  @override
+  Listenable? get refreshSignal => widget.refreshSignal;
+  @override
+  bool get canRefresh => _active && !_busy && !_fetching;
+  @override
+  Future<void> refreshData() => _load();
   late final OrderRepository _repo = OrderRepository(widget.api);
   late final AddressRepository _addresses = AddressRepository(widget.api);
   late final WalletRepository _wallet = WalletRepository(widget.api);
@@ -43,7 +59,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _token = widget.api.token;
+    _baseUrl = ApiClient.baseUrl;
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) requestDataRefresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   /// Trả về true nếu lỗi là hết phiên (đã báo cho màn cha, dừng xử lý tiếp).
@@ -51,17 +81,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (!const {'UNAUTHORIZED', 'ACCOUNT_SUSPENDED'}.contains(e.code)) {
       return false;
     }
+    if (_active) setState(() => _error = e.message);
     widget.onSessionExpired?.call(e);
     return true;
   }
 
   Future<void> _load() async {
+    if (!_active) return;
+    if (_busy || _fetching) {
+      requestDataRefresh();
+      return;
+    }
+    _fetching = true;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final order = await _repo.load(widget.orderId);
+      if (!_active) return;
       int? balance;
       var balanceFailed = false;
       if (order.awaitingPayment) {
@@ -69,60 +107,79 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         try {
           balance = (await _wallet.wallet()).available;
         } on ApiException catch (e) {
+          if (!_active) return;
           if (_expired(e)) return;
           balanceFailed = true;
         }
       }
-      if (!mounted) return;
+      if (!_active) return;
       setState(() {
         _order = order;
         _balance = balance;
         _balanceFailed = balanceFailed;
         _deadlinePassed = false;
-        if (balance != null && balance < order.amountToPay && _method == 'wallet') {
+        if (balance != null &&
+            balance < order.amountToPay &&
+            _method == 'wallet') {
           _method = 'qr';
         }
       });
     } on ApiException catch (e) {
-      if (!mounted || _expired(e)) return;
+      if (!_active) return;
       setState(() => _error = e.message);
+      _expired(e);
+    } catch (_) {
+      if (_active) {
+        setState(() => _error = 'Không tải được đơn. Vui lòng thử lại.');
+      }
     } finally {
+      _fetching = false;
       if (mounted) setState(() => _loading = false);
+      drainDataRefresh();
     }
   }
 
-  void _toast(String text) =>
-      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(content: Text(text)));
+  void _toast(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
 
   /// Chạy một thao tác ghi: khoá nút, báo lỗi bằng mã nghiệp vụ, rồi tải lại đơn.
   /// Không tự thử lại — lỗi mạng khi trả tiền chưa rõ kết quả nên phải tải lại để kiểm tra.
   Future<void> _run(Future<void> Function() action, String success) async {
-    if (_busy) return;
+    if (_locked) return;
     setState(() => _busy = true);
     try {
       await action();
-      if (!mounted) return;
+      if (!_active) return;
       _toast(success);
     } on ApiException catch (e) {
-      if (!mounted || _expired(e)) return;
+      if (!_active || _expired(e)) return;
       _toast(_friendly(e));
+    } catch (_) {
+      if (_active) {
+        _toast(
+            'Chưa xác định được kết quả. Hãy tải lại đơn trước khi thử lại.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-    if (mounted) await _load();
+    if (_active) await _load();
   }
 
   String _friendly(ApiException e) => switch (e.code) {
-    'INSUFFICIENT_FUNDS' => 'Ví không đủ số dư. Hãy nạp thêm hoặc chọn phương thức khác.',
-    'ALREADY_PAID' => 'Đơn này đã được thanh toán.',
-    'PAYMENT_EXPIRED' => 'Đơn đã quá hạn thanh toán.',
-    'ALREADY_SHIPPED' => 'Đơn đã được gửi đi, không thể đổi địa chỉ.',
-    'NOT_DELIVERED' => 'Đơn chưa được giao, chưa thể xác nhận.',
-    'ALREADY_CONFIRMED' => 'Bạn đã xác nhận nhận hàng rồi.',
-    'DISPUTE_OPEN' => 'Đơn đang có tranh chấp, chưa thể xác nhận.',
-    'NETWORK' || 'TIMEOUT' => '${e.message} Đơn sẽ được tải lại để kiểm tra kết quả.',
-    _ => e.message,
-  };
+        'INSUFFICIENT_FUNDS' =>
+          'Ví không đủ số dư. Hãy nạp thêm hoặc chọn phương thức khác.',
+        'ALREADY_PAID' => 'Đơn này đã được thanh toán.',
+        'PAYMENT_EXPIRED' => 'Đơn đã quá hạn thanh toán.',
+        'ALREADY_SHIPPED' => 'Đơn đã được gửi đi, không thể đổi địa chỉ.',
+        'NOT_DELIVERED' => 'Đơn chưa được giao, chưa thể xác nhận.',
+        'ALREADY_CONFIRMED' => 'Bạn đã xác nhận nhận hàng rồi.',
+        'DISPUTE_OPEN' => 'Đơn đang có tranh chấp, chưa thể xác nhận.',
+        'NETWORK' ||
+        'TIMEOUT' =>
+          '${e.message} Đơn sẽ được tải lại để kiểm tra kết quả.',
+        _ => e.message,
+      };
 
   Future<bool> _confirm(String title, String body, String ok) async =>
       await showDialog<bool>(
@@ -131,14 +188,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           title: Text(title),
           content: Text(body),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Để sau')),
-            TextButton(onPressed: () => Navigator.pop(c, true), child: Text(ok)),
+            TextButton(
+                onPressed: () => Navigator.pop(c, false),
+                child: const Text('Để sau')),
+            TextButton(
+                onPressed: () => Navigator.pop(c, true), child: Text(ok)),
           ],
         ),
       ) ??
       false;
 
   Future<void> _chooseAddress(Order o) async {
+    if (_locked) return;
     final selected = await Navigator.of(context).push<ShippingAddress>(
       MaterialPageRoute(
         builder: (_) => AddressBookScreen(
@@ -149,12 +210,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       ),
     );
-    if (selected == null || !mounted) return;
+    if (selected == null || !_active) return;
     // Chọn xong chưa phải đã gắn vào đơn: chỉ tin phản hồi của BE.
-    await _run(() => _repo.setAddress(o.id, selected.id), 'Đã cập nhật địa chỉ giao hàng.');
+    await _run(() => _repo.setAddress(o.id, selected.id),
+        'Đã cập nhật địa chỉ giao hàng.');
   }
 
   Future<void> _pay(Order o) async {
+    if (_locked) return;
     if (o.shippingAddress == null) {
       _toast('Hãy chọn địa chỉ nhận hàng trước khi thanh toán.');
       return;
@@ -164,26 +227,29 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       'Thanh toán ${orderMoney(o.amountToPay)} cho đơn này?',
       'Thanh toán',
     );
-    if (!ok || !mounted) return;
+    if (!ok || !_active) return;
     await _run(() => _repo.pay(o.id, _method), 'Thanh toán thành công.');
   }
 
   Future<void> _dispute(Order o) async {
+    if (_locked) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CustomerDisputeScreen(source: 'bidder', title: o.title, auctionId: o.auctionId),
+        builder: (_) => CustomerDisputeScreen(
+            source: 'bidder', title: o.title, auctionId: o.auctionId),
       ),
     );
     if (mounted) await _load(); // tranh chấp đổi trạng thái giải ngân của đơn
   }
 
   Future<void> _confirmDelivery(Order o) async {
+    if (_locked) return;
     final ok = await _confirm(
       'Xác nhận đã nhận hàng',
       'Tiền sẽ được chuyển cho người bán và bạn không thể mở tranh chấp sau bước này. Chỉ xác nhận khi hàng đúng mô tả.',
       'Đã nhận hàng',
     );
-    if (!ok || !mounted) return;
+    if (!ok || !_active) return;
     await _run(() => _repo.confirmDelivery(o.id), 'Đã xác nhận nhận hàng.');
   }
 
@@ -200,39 +266,46 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
       body: o == null
           ? _loading
-                ? const SkeletonOrderDetail()
-                : Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _error ?? 'Không tải được đơn.',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.dangerFg),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
-                        ],
-                      ),
+              ? const SkeletonOrderDetail()
+              : Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _error ?? 'Không tải được đơn.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.dangerFg),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                            onPressed: _load, child: const Text('Thử lại')),
+                      ],
                     ),
-                  )
+                  ),
+                )
           : RefreshIndicator(onRefresh: _load, child: _content(o)),
       bottomNavigationBar: o == null ? null : _action(o),
     );
   }
 
   bool _pastDeadline(Order o) =>
-      _deadlinePassed || (o.paymentDeadline != null && !DateTime.now().isBefore(o.paymentDeadline!));
+      _deadlinePassed ||
+      (o.paymentDeadline != null &&
+          !DateTime.now().isBefore(o.paymentDeadline!));
 
   Widget? _action(Order o) {
     if (o.awaitingPayment) {
       final late = _pastDeadline(o);
       return _bar(
         BigActionButton(
-          label: late ? 'Đã quá hạn thanh toán' : (_busy ? 'Đang xử lý…' : 'Thanh toán ${orderMoney(o.amountToPay)}'),
-          onPressed: _busy || late ? null : () => _pay(o),
+          label: late
+              ? 'Đã quá hạn thanh toán'
+              : (_busy
+                  ? 'Đang xử lý…'
+                  : 'Thanh toán ${orderMoney(o.amountToPay)}'),
+          onPressed: _locked || late ? null : () => _pay(o),
         ),
       );
     }
@@ -240,7 +313,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       return _bar(
         BigActionButton(
           label: _busy ? 'Đang xử lý…' : 'Đã nhận hàng',
-          onPressed: _busy ? null : () => _confirmDelivery(o),
+          onPressed: _locked ? null : () => _confirmDelivery(o),
         ),
       );
     }
@@ -248,47 +321,60 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _bar(Widget child) => SafeArea(
-    child: Padding(padding: const EdgeInsets.fromLTRB(16, 10, 16, 14), child: child),
-  );
+        child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14), child: child),
+      );
 
   Widget _card(Widget child) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: child,
-  );
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: child,
+      );
 
   Widget _title(String text) => Padding(
-    padding: const EdgeInsets.only(top: 18, bottom: 8),
-    child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-  );
+        padding: const EdgeInsets.only(top: 18, bottom: 8),
+        child: Text(text,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      );
 
   Widget _row(String k, String v, {Color? color, bool bold = false}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(k, style: const TextStyle(fontSize: 14, color: AppColors.muted)),
-        Text(
-          v,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-            color: color,
-          ),
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(k,
+                style: const TextStyle(fontSize: 14, color: AppColors.muted)),
+            Text(
+              v,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 
   Widget _content(Order o) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
+        if (_loading) const LinearProgressIndicator(),
+        if (_error != null)
+          _card(Column(children: [
+            Text(_error!, style: const TextStyle(color: AppColors.dangerFg)),
+            const Text(
+                'Dữ liệu có thể chưa cập nhật. Tải lại trước khi thao tác.'),
+            TextButton(
+                onPressed: _loading ? null : _load,
+                child: const Text('Thử lại')),
+          ])),
         _card(
           Row(
             children: [
@@ -300,11 +386,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   children: [
                     Text(
                       o.title,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.35),
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35),
                     ),
                     if (o.sellerName != null) ...[
                       const SizedBox(height: 2),
-                      Text(o.sellerName!, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                      Text(o.sellerName!,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.muted)),
                     ],
                     const SizedBox(height: 6),
                     OrderStatusPill(o),
@@ -321,7 +412,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               _row('Giá thắng', orderMoney(o.finalPrice)),
               _row('Phí dịch vụ (5%)', orderMoney(o.fee)),
               _row('Vận chuyển từ kho', orderMoney(o.shippingFee)),
-              _row('Cọc đã đặt', '−${orderMoney(o.depositApplied)}', color: AppColors.successStrong),
+              _row('Cọc đã đặt', '−${orderMoney(o.depositApplied)}',
+                  color: AppColors.successStrong),
               const Divider(height: 24),
               _row(
                 o.paid ? 'Đã thanh toán' : 'Cần thanh toán',
@@ -336,11 +428,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     child: Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Text('Còn lại để thanh toán: ', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                        const Text('Còn lại để thanh toán: ',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.muted)),
                         LiveCountdown(
                           deadline: o.paymentDeadline!,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.pendingFg),
-                          onExpired: () => setState(() => _deadlinePassed = true),
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.pendingFg),
+                          onExpired: () =>
+                              setState(() => _deadlinePassed = true),
                         ),
                       ],
                     ),
@@ -353,7 +451,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
                       'Đơn đang có tranh chấp. Ký quỹ được giữ lại cho tới khi Admin phán quyết.',
-                      style: TextStyle(fontSize: 12, color: AppColors.dangerStrong, height: 1.4),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.dangerStrong,
+                          height: 1.4),
                     ),
                   ),
                 ),
@@ -364,7 +465,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
                       'Đã quá hạn thanh toán — giao dịch bị huỷ.',
-                      style: TextStyle(fontSize: 12, color: AppColors.dangerStrong),
+                      style: TextStyle(
+                          fontSize: 12, color: AppColors.dangerStrong),
                     ),
                   ),
                 ),
@@ -375,31 +477,38 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         _addressCard(o),
         // Đổi giai đoạn (chờ thanh toán → đã trả → theo dõi) chuyển nội dung nhẹ thay vì nhảy đột ngột.
         AnimatedSwitcher(
-          duration: MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 200),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
           child: Column(
-            key: ValueKey(o.awaitingPayment ? 'pay' : (o.expired ? 'expired' : 'track')),
+            key: ValueKey(
+                o.awaitingPayment ? 'pay' : (o.expired ? 'expired' : 'track')),
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            if (o.awaitingPayment) ...[
-              _title('Phương thức'),
-              _payTile('qr', 'VietQR', 'Quét mã từ ứng dụng ngân hàng', true),
-              const SizedBox(height: 8),
-              _payTile('card', 'Thẻ nội địa', 'Thanh toán qua cổng ngân hàng', true),
-              const SizedBox(height: 8),
-              _payTile(
-                'wallet',
-                'Ví BidVibe',
-                _balanceFailed
-                    ? 'Không tải được số dư. Kéo xuống để thử lại.'
-                    : _balance == null
-                    ? 'Đang tải số dư…'
-                    : _balance! >= o.amountToPay
-                    ? 'Số dư khả dụng ${orderMoney(_balance!)}'
-                    : 'Số dư ${orderMoney(_balance!)} — không đủ, hãy nạp thêm',
-                _balance != null && _balance! >= o.amountToPay,
-              ),
-            ],
-            if (!o.expired && !o.awaitingPayment) ...[_title('Theo dõi đơn'), _tracking(o)],
+              if (o.awaitingPayment) ...[
+                _title('Phương thức'),
+                _payTile('qr', 'VietQR', 'Quét mã từ ứng dụng ngân hàng', true),
+                const SizedBox(height: 8),
+                _payTile('card', 'Thẻ nội địa', 'Thanh toán qua cổng ngân hàng',
+                    true),
+                const SizedBox(height: 8),
+                _payTile(
+                  'wallet',
+                  'Ví BidVibe',
+                  _balanceFailed
+                      ? 'Không tải được số dư. Kéo xuống để thử lại.'
+                      : _balance == null
+                          ? 'Đang tải số dư…'
+                          : _balance! >= o.amountToPay
+                              ? 'Số dư khả dụng ${orderMoney(_balance!)}'
+                              : 'Số dư ${orderMoney(_balance!)} — không đủ, hãy nạp thêm',
+                  _balance != null && _balance! >= o.amountToPay,
+                ),
+              ],
+              if (!o.expired && !o.awaitingPayment) ...[
+                _title('Theo dõi đơn'),
+                _tracking(o)
+              ],
             ],
           ),
         ),
@@ -407,10 +516,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           const SizedBox(height: 12),
           Center(
             child: TextButton(
-              onPressed: _busy ? null : () => _dispute(o),
+              onPressed: _locked ? null : () => _dispute(o),
               child: const Text(
                 'Hàng có vấn đề? Mở tranh chấp',
-                style: TextStyle(fontSize: 13, color: AppColors.dangerStrong, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.dangerStrong,
+                    fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -426,13 +538,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: o.canChangeAddress && !_busy ? () => _chooseAddress(o) : null,
+        onTap: o.canChangeAddress && !_locked ? () => _chooseAddress(o) : null,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: a == null && !o.expired ? AppColors.dangerStrong : AppColors.border),
+            border: Border.all(
+                color: a == null && !o.expired
+                    ? AppColors.dangerStrong
+                    : AppColors.border),
           ),
           child: Row(
             children: [
@@ -440,17 +555,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 child: a == null
                     ? const Text(
                         'Chưa có địa chỉ nhận hàng. Kho không gửi được đơn nếu thiếu địa chỉ.',
-                        style: TextStyle(fontSize: 14, color: AppColors.dangerFg, height: 1.4),
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.dangerFg,
+                            height: 1.4),
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '${a.recipientName} · ${a.phone}',
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
-                          Text(a.fullAddress, style: const TextStyle(fontSize: 14, height: 1.4)),
+                          Text(a.fullAddress,
+                              style:
+                                  const TextStyle(fontSize: 14, height: 1.4)),
                         ],
                       ),
               ),
@@ -458,7 +579,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const SizedBox(width: 8),
                 Text(
                   a == null ? 'Chọn' : 'Đổi',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.accent),
                 ),
               ],
             ],
@@ -477,17 +601,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: enabled ? () => setState(() => _method = value) : null,
+          onTap: enabled && !_locked
+              ? () => setState(() => _method = value)
+              : null,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: selected ? AppColors.accent : AppColors.border),
+              border: Border.all(
+                  color: selected ? AppColors.accent : AppColors.border),
             ),
             child: Row(
               children: [
                 Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                  selected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
                   color: selected ? AppColors.accent : const Color(0xFF9AA0A9),
                 ),
                 const SizedBox(width: 12),
@@ -495,10 +624,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text(title,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
                       Text(
                         sub,
-                        style: TextStyle(fontSize: 12, color: enabled ? AppColors.muted : AppColors.dangerFg),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                enabled ? AppColors.muted : AppColors.dangerFg),
                       ),
                     ],
                   ),
@@ -521,7 +655,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           if (failed)
             const Text(
               'Kho phát hiện hàng không khớp mô tả. Đơn tạm dừng cho tới khi quản trị viên xử lý.',
-              style: TextStyle(fontSize: 13, color: AppColors.dangerFg, height: 1.4),
+              style: TextStyle(
+                  fontSize: 13, color: AppColors.dangerFg, height: 1.4),
             )
           else
             for (var i = 1; i < orderStages.length; i++)
@@ -543,7 +678,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Text(
                   '${orderTime(e.at)} · ${eventLabel(e.step)}${e.note == null || e.note!.isEmpty ? '' : ' — ${e.note}'}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppColors.muted, height: 1.4),
                 ),
               ),
           ],
@@ -552,35 +688,36 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _step(String label, {required bool done, required bool active}) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      children: [
-        Icon(
-          done
-              ? Icons.check_circle
-              : active
-              ? Icons.radio_button_checked
-              : Icons.radio_button_off,
-          size: 20,
-          color: done
-              ? AppColors.successStrong
-              : active
-              ? AppColors.accent
-              : const Color(0xFF9AA0A9),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-              color: done || active ? AppColors.ink : AppColors.muted,
+  Widget _step(String label, {required bool done, required bool active}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Icon(
+              done
+                  ? Icons.check_circle
+                  : active
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+              size: 20,
+              color: done
+                  ? AppColors.successStrong
+                  : active
+                      ? AppColors.accent
+                      : const Color(0xFF9AA0A9),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: done || active ? AppColors.ink : AppColors.muted,
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }

@@ -11,7 +11,15 @@ import '../../store.dart';
 
 class BidderHomeScreen extends StatefulWidget {
   final AuctionRepository? repository;
-  const BidderHomeScreen({super.key, this.repository});
+  final Listenable? refreshSignal;
+  final VoidCallback? onReturnFromAuction;
+  final Future<void> Function(String)? onOpenOrder;
+  const BidderHomeScreen(
+      {super.key,
+      this.repository,
+      this.refreshSignal,
+      this.onReturnFromAuction,
+      this.onOpenOrder});
   @override
   State<BidderHomeScreen> createState() => _BidderHomeScreenState();
 }
@@ -28,8 +36,7 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _repo =
-        widget.repository ??
+    _repo = widget.repository ??
         AuctionRepository((context.read<AppStore>() as RemoteAppStore).api);
     _loadCategories();
     _load();
@@ -255,10 +262,15 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
                       builder: (_) => AuctionDetailScreen(
                         auctionId: '${item['id']}',
                         repository: _repo,
+                        refreshSignal: widget.refreshSignal,
+                        onOpenOrder: widget.onOpenOrder,
                       ),
                     ),
                   );
-                  if (mounted) await _load();
+                  if (mounted) {
+                    widget.onReturnFromAuction?.call();
+                    await _load();
+                  }
                 },
               ),
             if (_error != null) ...[
@@ -297,12 +309,12 @@ class _AuctionCard extends StatelessWidget {
     final state = item['terminated'] == true || item['status'] == 'cancelled'
         ? 'Đã hủy'
         : paused
-        ? 'Tạm dừng'
-        : item['status'] == 'ended'
-        ? 'Đã kết thúc'
-        : seconds <= 0
-        ? 'Chờ máy chủ chốt phiên'
-        : 'Đang diễn ra';
+            ? 'Tạm dừng'
+            : item['status'] == 'ended'
+                ? 'Đã kết thúc'
+                : seconds <= 0
+                    ? 'Chờ máy chủ chốt phiên'
+                    : 'Đang diễn ra';
     final money = NumberFormat.decimalPattern('vi_VN')
         .format((item['currentPrice'] as num?) ?? 0);
     return Card(

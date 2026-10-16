@@ -1,5 +1,16 @@
 # Bàn giao giữa Hào, Hiệu và Khang
 
+## Bổ sung của Hào sau merge Hiệu/Khang
+
+Bản nền `ab15709` đã gồm phần Hiệu và PR #9 Khang. Gói bổ sung của Hào được kiểm thử trên bản sao, chưa tự ghi vào repo. Xem [hao-integration.md](hao-integration.md) trước các ghi nhận cũ bên dưới.
+
+- `BidderShell` mặc định mở thông báo `disputeId` bằng `DisputeDetailScreen`, `orderId` bằng `OrderDetailScreen`. `onOpenTarget` vẫn là tùy chọn override; caller tự chịu trách nhiệm route nếu truyền callback này.
+- `DisputeDetailScreen(api, disputeId, onSessionExpired, onOpenOrder, refreshSignal)` lấy từ GET `/api/disputes/mine`; không thêm endpoint chi tiết chưa có. Màn này phục vụ bidder, mở đơn liên quan bằng `dispute.orderId`.
+- `AuctionDetailScreen` có nút “Xem đơn thắng” khi BE xác nhận won/ended; GET đơn của mình, đối chiếu auctionId, mở bằng order.id.
+- `refreshSignal` là `Listenable?` tùy chọn truyền từ shell tới Ví/Hồ sơ/chi tiết đơn/tranh chấp. Sau một sự kiện hoặc đóng route, shell phát tín hiệu; các màn gom/đợi yêu cầu GET khi đang bận. Hồ sơ đang sửa không bị ghi đè.
+- Route đơn vẫn do module Hiệu xử lý địa chỉ/thanh toán/theo dõi/xác nhận; Admin/Appraiser/Warehouse vẫn do module Khang gọi API đúng role. Hào không thêm thao tác Admin vào bidder.
+- Gói có 16 test mới; manual nhiều role và PR thực hiện theo tài liệu tích hợp. Những câu “chưa có route dispute” trong nhật ký cũ bên dưới đã được thay thế bởi bản bổ sung này.
+
 ## Những gì phải kèm mỗi lần bàn giao
 
 Ghi task ID, file/class màn, role, đầu vào, kết quả trả về khi pop, API đã gọi, lỗi cần xử lý, cách kiểm thử, PR/commit và phần còn thiếu. Dùng tên class thực tế sau khi code được ghép; không tự giả định màn của thành viên khác đã tồn tại.

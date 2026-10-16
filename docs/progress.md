@@ -1,5 +1,18 @@
 # Tiến độ và phạm vi đã triển khai
 
+## Cập nhật tích hợp Hào — bản nền ab15709
+
+Đọc [hao-integration.md](hao-integration.md) để xem trạng thái mới và thứ tự kiểm thử. Các mục từ “Mốc ghi nhận” bên dưới là nhật ký của các lần bàn giao trước, có thể mô tả phần còn chờ đã được tích hợp sau đó.
+
+- Đã kiểm tra checkout sạch: local `develop` và `origin/main` ở `ab15709`, gồm merge PR #9 của Khang. `origin/develop` tại lần đọc còn ở `34e471d`; không suy rằng remote develop đã đồng bộ main.
+- Phần Hiệu và Khang đã có trong bản nền; Hào không cần xây lại màn đơn, seller, Admin, Appraiser, Warehouse.
+- Bản sao QA đã nối thông báo tranh chấp → chi tiết thật, phiên thắng → đơn thật, đồng bộ Ví/Hồ sơ và chi tiết đơn/tranh chấp; giữ bố cục Hồ sơ và bản nháp đang nhập.
+- Kiểm thử tự động: bản nền 204 đạt; bản bổ sung 220 đạt, 2 test BE thật bỏ qua. Chưa kiểm thử thủ công phần bổ sung trên BE/Supabase của nhóm.
+- H04/H08: phần code nối đã có trong gói bàn giao; chờ Hào chép file, manual và PR. H05: report/Admin có đủ phía FE, còn kiểm thử nhiều role với BE thật. H09: review và chuẩn bị phát hành tiếp tục sau manual.
+- Bản bổ sung chưa được chép vào repo thật, commit, push hoặc merge bởi công cụ. Trạng thái Git nêu trên chỉ là lần đọc để chọn bản nền.
+
+## Nhật ký trước đợt tích hợp
+
 Mốc ghi nhận: **16/10/2026**. Đây là ảnh chụp tiến độ, không tự đồng bộ theo GitHub.
 
 ## Bằng chứng và cách đọc
