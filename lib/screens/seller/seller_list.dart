@@ -5,8 +5,10 @@ import '../../models.dart';
 import '../../store.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
+import '../../core/remote_app_store.dart';
 import '../customer/customer_chatbot.dart';
 import '../customer/customer_dispute.dart';
+import '../orders/my_disputes_screen.dart';
 import 'seller_edit.dart';
 
 /// Danh sách phiên ký gửi của gian hàng đang đăng nhập. Từ đây người bán
@@ -65,6 +67,12 @@ class _SellerListScreenState extends State<SellerListScreen> {
                   ],
                 ),
               ),
+              if (store is RemoteAppStore)
+                IconButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => MyDisputesScreen(api: store.api))),
+                  tooltip: 'Tranh chấp của tôi',
+                  icon: const Icon(Icons.gavel_outlined, color: AppColors.accent),
+                ),
               IconButton(
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerChatbotScreen())),
                 tooltip: 'Hỗ trợ',
@@ -72,6 +80,21 @@ class _SellerListScreenState extends State<SellerListScreen> {
               ),
             ],
           ),
+          if (store is RemoteAppStore) ...[
+            if (store.sellerLoading && items.isEmpty) const Padding(padding: EdgeInsets.only(top: 12), child: LinearProgressIndicator()),
+            if (store.sellerError != null)
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: AppColors.dangerBg, borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(store.sellerError!, style: const TextStyle(fontSize: 13, color: AppColors.dangerFg, height: 1.4))),
+                    TextButton(onPressed: store.sellerLoading ? null : store.loadSeller, child: const Text('Thử lại')),
+                  ],
+                ),
+              ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [

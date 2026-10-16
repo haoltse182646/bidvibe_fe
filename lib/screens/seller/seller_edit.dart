@@ -24,6 +24,7 @@ class _SellerEditScreenState extends State<SellerEditScreen> {
   late String cond;
   late int hours;
   int extraPhotos = 0;
+  bool _saving = false; // chặn bấm đúp khi đang gửi
 
   static const durations = [(24, '24 giờ'), (72, '3 ngày'), (168, '7 ngày')];
   static const conds = ['Mới', 'Như mới', 'Đã qua sử dụng'];
@@ -149,14 +150,22 @@ class _SellerEditScreenState extends State<SellerEditScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                 child: BigActionButton(
-                  label: needInfo ? 'Gửi bổ sung cho thẩm định' : 'Lưu thay đổi',
-                  onPressed: valid
-                      ? () {
+                  label: _saving ? 'Đang gửi…' : (needInfo ? 'Gửi bổ sung cho thẩm định' : 'Lưu thay đổi'),
+                  onPressed: valid && !_saving
+                      ? () async {
                           final messenger = ScaffoldMessenger.of(context);
-                          final ok = store.updateListing(l.id, title: titleCtrl.text.trim(), desc: descCtrl.text.trim(), start: _start!, durationHours: hours, cond: cond);
-                          if (ok && needInfo) store.sellerSubmitMoreInfo(l.id, extraPhotos: extraPhotos);
+                          final nav = Navigator.of(context);
+                          setState(() => _saving = true);
+                          final ok = await store.updateListing(l.id, title: titleCtrl.text.trim(), desc: descCtrl.text.trim(), start: _start!, durationHours: hours, cond: cond);
+                          // Thất bại ở bước nào thì ở lại màn này: store đã hiện lý do, người bán sửa tiếp.
+                          final sent = ok && (!needInfo || await store.sellerSubmitMoreInfo(l.id, extraPhotos: extraPhotos));
+                          if (!mounted) return;
+                          if (!sent) {
+                            setState(() => _saving = false);
+                            return;
+                          }
                           messenger.showSnackBar(SnackBar(content: Text(needInfo ? 'Đã gửi bổ sung. Hồ sơ quay lại hàng chờ thẩm định.' : 'Đã lưu thay đổi phiên.')));
-                          Navigator.of(context).pop();
+                          nav.pop();
                         }
                       : null,
                 ),
