@@ -1,6 +1,6 @@
 # Phân công FE và thứ tự thực hiện
 
-Cập nhật 16/10/2026. Hào là leader FE. Phân công dưới đây kết hợp phạm vi đã trao đổi với kế hoạch để hoàn thiện luồng chung; không xác nhận thay Hiệu/Khang rằng họ đã nhận việc hoặc đã hoàn thành.
+Cập nhật 16/10/2026. Hào là leader FE. Bản nền `ab15709` đã có phần đơn/seller của Hiệu và PR #9 Admin/ops của Khang. Bản bổ sung tích hợp Hào và thứ tự manual nằm trong [hao-integration.md](hao-integration.md); những trạng thái cũ “chờ/đề xuất” phía dưới là kế hoạch ban đầu, không thay cho bằng chứng ở [progress.md](progress.md).
 
 ## Phạm vi chính
 
@@ -8,7 +8,7 @@ Cập nhật 16/10/2026. Hào là leader FE. Phân công dưới đây kết h�
 |---|---|---|
 | Hào | Leader; xác thực dùng chung; bidder khám phá/chi tiết phiên, ví, cọc, giá realtime, thông báo, báo cáo phiên; Hồ sơ/chatbot; sổ địa chỉ dùng chung mới bổ sung | Giữ đầu mối review và tích hợp FE; cập nhật docs cùng PR |
 | Hiệu | Module seller và luồng sau bán/đơn hàng, thanh toán, giao nhận phía người dùng, tranh chấp; dùng lại sổ địa chỉ của Hào | Chốt phạm vi seller với nhóm trước khi mở rộng sang AI gợi ý giá |
-| Khang | Module Admin, nhận và xử lý cờ/báo cáo, phối hợp kiểm thử thao tác Admin tác động bidder | Appraiser và Warehouse được đề xuất gom cùng nhóm màn ops; cần nhóm xác nhận người làm và năng lực thực hiện |
+| Khang | Admin, Appraiser, Warehouse đã có code API trong bản nền PR #9; phối hợp Hào kiểm thử tác động đến bidder | Cùng nhóm ghi kết quả manual BE sau khi tích hợp |
 
 Sổ địa chỉ đã chuyển thành module dùng chung do Hào triển khai. Hiệu phụ trách gắn địa chỉ vào đơn; không làm lại một sổ địa chỉ thứ hai. Nếu phân công thực tế khác, sửa bảng này trong cùng PR điều chỉnh phạm vi.
 
@@ -19,11 +19,11 @@ Sổ địa chỉ đã chuyển thành module dùng chung do Hào triển khai. 
 | H01 | Xác thực và cấu hình BE | Login/register/ops login, khôi phục phiên, cấu hình URL dùng chung | Có code local; các bước trước Hào đã báo kiểm thử thành công |
 | H02 | Khám phá và chi tiết phiên | Lọc/tìm/phân trang, đúng auctionId, dữ liệu và trạng thái BE | Có code local và test QA |
 | H03 | Ví, đặt cọc, đặt giá realtime | Không dùng số dư demo; chặn gửi lặp; đồng bộ sau reconnect | Có code local và test QA |
-| H04 | Thông báo bidder | Danh sách, badge, read/read-all, nhận sự kiện toàn khung bidder | Có code; điều hướng đơn/tranh chấp chờ Hiệu |
+| H04 | Thông báo bidder | Danh sách, badge, read/read-all, nhận sự kiện toàn khung bidder | Đã nối đơn và chi tiết tranh chấp trong gói tích hợp; chờ manual/PR |
 | H05 | Báo cáo phiên | Gửi report, xác nhận/đã báo cáo; đối chiếu được bên Admin | Phía bidder có code; ghép Admin chờ Khang |
 | H06 | Hồ sơ và chatbot | Sửa hồ sơ, avatar, mật khẩu; chat BE và mở lại lịch sử | Có code và test QA; cần xác nhận manual bản cuối |
 | H07 | Sổ địa chỉ dùng chung | CRUD/mặc định, Hồ sơ tải lại, chọn trả về ShippingAddress | Đã bàn giao code; Hào đang ghép, chưa xác nhận hết lỗi và manual |
-| H08 | Nối màn của Hiệu/Khang | onOpenTarget, onOpenOrder, các luồng nhiều role chạy xuyên suốt | Chờ hợp đồng điều hướng và màn thật |
+| H08 | Nối màn của Hiệu/Khang | Thông báo → đơn/tranh chấp; phiên thắng → đơn; đồng bộ Ví/Hồ sơ | Có code và 16 test mới trong gói tích hợp; manual BE theo hao-integration.md |
 | H09 | Review, docs và release | PR có kiểm thử; cập nhật tiến độ; develop ổn trước main | Công việc xuyên suốt, không tự coi đã merge |
 
 ## Task của Hiệu — thứ tự khuyến nghị

@@ -238,6 +238,8 @@ class RemoteAppStore extends AppStore {
     return true;
   }
 
+  bool handleApiException(ApiException e) => _handleAuth(e);
+
   /// Chạy một thao tác ghi: báo lỗi của BE, không tự thử lại. Chỉ tải lại dữ liệu
   /// khi thao tác đã thành công hoặc chưa rõ kết quả (mất mạng / quá thời gian).
   Future<bool> _write(Future<void> Function() action, {String? ok, String okBody = ''}) async {

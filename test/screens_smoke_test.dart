@@ -29,13 +29,10 @@ import 'package:bidvibe/screens/customer/customer_dispute.dart';
 import 'package:bidvibe/screens/seller/seller_shell.dart';
 import 'package:bidvibe/screens/seller/seller_edit.dart';
 import 'package:bidvibe/screens/appraiser/appraiser_shell.dart';
-import 'package:bidvibe/screens/appraiser/appraiser_detail.dart';
-import 'package:bidvibe/screens/warehouse/warehouse_board.dart';
-import 'package:bidvibe/screens/warehouse/warehouse_detail.dart';
+import 'package:bidvibe/screens/appraiser/appraiser_ops_screen.dart';
+import 'package:bidvibe/screens/warehouse/warehouse_ops_screen.dart';
 import 'package:bidvibe/screens/admin/admin_shell.dart';
-import 'package:bidvibe/screens/admin/admin_flags.dart';
-import 'package:bidvibe/screens/admin/admin_disputes.dart';
-import 'package:bidvibe/screens/admin/admin_audit.dart';
+import 'package:bidvibe/screens/admin/admin_ops_cases.dart';
 
 // Real API screens receive a RemoteAppStore with a mock HTTP client.
 // Remaining prototype screens still use the seeded data inherited from AppStore.
@@ -139,6 +136,84 @@ void main() {
           '/api/notifications' => {'notifications': [], 'unreadCount': 0},
           '/api/addresses' => {'addresses': []},
           '/api/orders/mine' => {'orders': []},
+          '/api/admin/dashboard' => {
+            'auctions': {'live': 0, 'endingIn24h': 0},
+            'appraisal': {'pending': 0, 'needsInfo': 0},
+            'orders': {
+              'awaitingPayment': 0,
+              'awaitingSellerShipment': 0,
+              'inTransitToWarehouse': 0,
+              'inspecting': 0,
+              'outbound': 0,
+              'deliveredAwaitingConfirm': 0,
+            },
+            'flags': {'open': 0, 'paused': 0},
+            'disputes': {'open': 0},
+            'users': {'bidders': 0, 'sellers': 0, 'ops': 0, 'suspended': 0},
+            'escrowHeld': 0,
+          },
+          '/api/admin/report/weekly' => {
+            'period': {'from': '2026-10-09T00:00:00Z', 'to': '2026-10-16T00:00:00Z'},
+            'auctions': {'ended': 0, 'sold': 0, 'cancelled': 0},
+            'sales': {'orders': 0, 'gmv': 0, 'estimatedFees': 0},
+            'payments': {'paid': 0, 'expired': 0},
+            'newAccounts': {'bidder': 0, 'seller': 0},
+            'appraisals': {'approve': 0, 'reject': 0, 'more_info': 0},
+            'disputes': {'opened': 0, 'resolved': 0},
+            'walletTopups': {'count': 0, 'total': 0},
+            'topCategories': [],
+          },
+          '/api/admin/flags' => {
+            'flags': [
+              {
+                'id': '1',
+                'auction': {'id': '9', 'title': 'Phiên kiểm thử'},
+                'severity': 'high',
+                'confidence': 90,
+                'reason': 'Tín hiệu bất thường',
+                'aiExplanation': 'Mô tả kiểm thử',
+                'status': 'pending',
+                'evidence': [
+                  {'label': 'Tần suất', 'value': 'Cao'},
+                ],
+              },
+            ],
+          },
+          '/api/admin/disputes' => {'disputes': []},
+          '/api/admin/accounts' => {'accounts': []},
+          '/api/admin/ops-accounts' => {'accounts': []},
+          '/api/appraisals/queue' => {'items': []},
+          '/api/appraisals/31' => {
+            'listingId': '31',
+            'title': 'Tin thẩm định kiểm thử',
+            'description': 'Mô tả thử nghiệm',
+            'condition': 'Tốt',
+            'category': 'elec',
+            'startingPrice': 1000000,
+            'durationHours': 24,
+            'status': 'pending_appraisal',
+            'seller': {'storeName': 'Cửa hàng thử', 'rating': 4.8},
+            'photos': [],
+            'history': [],
+          },
+          '/api/warehouse/orders' => {
+            'orders': [
+              {
+                'id': '42',
+                'title': 'Đơn kho kiểm thử',
+                'stage': 'inspecting',
+                'paymentStatus': 'paid',
+                'seller': {'storeName': 'Cửa hàng thử'},
+                'buyer': {'name': 'Người mua thử', 'phone': '0900000000'},
+                'shippingAddress': {
+                  'addressLine': '1 Đường thử',
+                  'city': 'TP.HCM',
+                },
+                'warehouse': {'orderCode': 'BV-161026-0042'},
+                'shipment': null,
+              },
+            ],
+          },
           '/api/auctions/1107' => detail('1107'),
           '/api/auctions/1108' => detail('1108'),
           '/api/auctions/1109' => detail('1109'),
@@ -249,7 +324,7 @@ void main() {
   for (final entry in <String, Type>{
     'long@sneakersg.vn': SellerShell,
     'khoa.tran@bidvibe.vn': AppraiserShell,
-    'anh.pham@bidvibe.vn': WarehouseBoardScreen,
+    'anh.pham@bidvibe.vn': WarehouseOpsScreen,
     'admin@bidvibe.vn': AdminShell,
   }.entries) {
     testWidgets('RootShell: mở shell theo role của ${entry.value}', (
@@ -420,52 +495,27 @@ void main() {
     );
   });
 
-  testWidgets('Appraiser & Warehouse: các màn prototype', (tester) async {
+  testWidgets('Appraiser & Warehouse: màn ops tải dữ liệu API', (tester) async {
     viewport(tester);
-    await show(tester, const AppraiserShell(), loginAs: 'khoa.tran@bidvibe.vn');
+    await show(tester, const AppraiserOpsScreen(), loginAs: 'khoa.tran@bidvibe.vn');
     await show(
       tester,
-      const AppraiserDetailScreen(itemId: 'p1'),
+      const AppraiserOpsDetailScreen(listingId: '31'),
       loginAs: 'khoa.tran@bidvibe.vn',
     );
     await show(
       tester,
-      const AppraiserDetailScreen(itemId: 'p2'),
-      loginAs: 'khoa.tran@bidvibe.vn',
-    );
-    await show(
-      tester,
-      const WarehouseBoardScreen(),
+      const WarehouseOpsScreen(),
       loginAs: 'anh.pham@bidvibe.vn',
     );
-    for (final shipment in store.warehouseShipments) {
-      await show(
-        tester,
-        WarehouseDetailScreen(id: shipment.id),
-        loginAs: 'anh.pham@bidvibe.vn',
-      );
-    }
+    await show(tester, const WarehouseOpsDetailScreen(orderId: '42'), loginAs: 'anh.pham@bidvibe.vn');
   });
 
-  testWidgets('Admin: shell, cờ, tranh chấp và nhật ký prototype', (
+  testWidgets('Admin: shell, cờ và tranh chấp dùng API', (
     tester,
   ) async {
     viewport(tester);
     await show(tester, const AdminShell(), loginAs: 'admin@bidvibe.vn');
-    for (final flag in store.flags) {
-      await show(
-        tester,
-        AdminFlagDetailScreen(flagId: flag.id),
-        loginAs: 'admin@bidvibe.vn',
-      );
-    }
-    for (final dispute in store.disputes) {
-      await show(
-        tester,
-        AdminDisputeDetailScreen(disputeId: dispute.id),
-        loginAs: 'admin@bidvibe.vn',
-      );
-    }
-    await show(tester, const AdminAuditScreen(), loginAs: 'admin@bidvibe.vn');
+    await show(tester, const AdminOpsFlagDetailScreen(flagId: '1'), loginAs: 'admin@bidvibe.vn');
   });
 }

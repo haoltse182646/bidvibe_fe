@@ -4,15 +4,20 @@ import '../../core/api_client.dart';
 import '../../features/disputes/dispute_repository.dart';
 import '../../theme.dart';
 import '../../widgets/skeleton.dart';
-import 'order_detail_screen.dart';
+import 'dispute_detail_screen.dart';
 import 'order_labels.dart';
 
 /// Tranh chấp trên các đơn của tôi (người mua hoặc người bán).
-/// Chạm một dòng để mở đơn liên quan.
+/// Chạm một dòng để mở tiến trình tranh chấp.
 class MyDisputesScreen extends StatefulWidget {
   final ApiClient api;
+  final Listenable? refreshSignal;
   final void Function(ApiException error)? onSessionExpired;
-  const MyDisputesScreen({super.key, required this.api, this.onSessionExpired});
+  const MyDisputesScreen(
+      {super.key,
+      required this.api,
+      this.onSessionExpired,
+      this.refreshSignal});
 
   @override
   State<MyDisputesScreen> createState() => _MyDisputesScreenState();
@@ -52,17 +57,17 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
   }
 
   String _resolution(UserDispute d) => switch (d.resolution) {
-    'refund' => 'Đã hoàn tiền cho người mua',
-    'keep' => 'Giữ nguyên, giải ngân cho người bán',
-    _ => 'Admin đang xem xét',
-  };
+        'refund' => 'Đã hoàn tiền cho người mua',
+        'keep' => 'Giữ nguyên, giải ngân cho người bán',
+        _ => 'Admin đang xem xét',
+      };
 
   String _source(String s) => switch (s) {
-    'bidder' => 'Người mua mở',
-    'seller' => 'Người bán mở',
-    'warehouse' => 'Kho mở (kiểm không khớp)',
-    _ => s,
-  };
+        'bidder' => 'Người mua mở',
+        'seller' => 'Người bán mở',
+        'warehouse' => 'Kho mở (kiểm không khớp)',
+        _ => s,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +99,8 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
           ),
           const SizedBox(height: 12),
           Center(
-            child: OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
+            child:
+                OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
           ),
         ],
       );
@@ -130,9 +136,10 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
         onTap: () async {
           await Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => OrderDetailScreen(
+              builder: (_) => DisputeDetailScreen(
                 api: widget.api,
-                orderId: d.orderId,
+                disputeId: d.id,
+                refreshSignal: widget.refreshSignal,
                 onSessionExpired: widget.onSessionExpired,
               ),
             ),
@@ -152,7 +159,8 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: open ? AppColors.pendingBg : AppColors.successBg,
                       borderRadius: BorderRadius.circular(999),
@@ -170,7 +178,8 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
                   Expanded(
                     child: Text(
                       _source(d.source),
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted),
+                      style:
+                          const TextStyle(fontSize: 12, color: AppColors.muted),
                     ),
                   ),
                 ],
@@ -178,12 +187,14 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
               const SizedBox(height: 8),
               Text(
                 d.itemTitle,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.3),
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w600, height: 1.3),
               ),
               const SizedBox(height: 4),
               Text(
                 _resolution(d),
-                style: const TextStyle(fontSize: 13, color: AppColors.mutedStrong),
+                style:
+                    const TextStyle(fontSize: 13, color: AppColors.mutedStrong),
               ),
               const SizedBox(height: 4),
               Text(

@@ -10,6 +10,7 @@ import '../../features/notifications/notification_repository.dart';
 import '../../store.dart';
 import '../auth/auth_profile.dart';
 import '../orders/order_detail_screen.dart';
+import '../orders/dispute_detail_screen.dart';
 import '../orders/orders_screen.dart';
 import 'auction_detail_screen.dart';
 import 'bidder_home.dart';
@@ -18,7 +19,7 @@ import 'bidder_notifications.dart';
 
 class BidderShell extends StatefulWidget {
   final NotificationController? notifications;
-  // Connect this to the real order/dispute/listing screens when those modules are integrated.
+  // Optional override for an enclosing application/router.
   final Future<void> Function(NotificationTarget)? onOpenTarget;
   const BidderShell({super.key, this.notifications, this.onOpenTarget});
   @override
@@ -31,6 +32,10 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
   int _tab = 0;
   bool _loggingOut = false;
   String? _lastToast;
+  final _dataRefresh = ValueNotifier<int>(0);
+  bool _refreshQueued = false, _wasConnected = false;
+  late final String? _token;
+  late final String _baseUrl;
   ScaffoldMessengerState? _messenger;
 
   @override
@@ -49,6 +54,8 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
         events: SessionNotificationEvents(store.api.token!),
       );
     }
+    _token = _notifications.repository.api.token;
+    _baseUrl = ApiClient.baseUrl;
     _notifications.addListener(_changed);
     WidgetsBinding.instance.addObserver(this);
     _notifications.start();
@@ -64,10 +71,18 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
     if (!mounted) {
       return;
     }
+    if (_notifications.repository.api.token != _token ||
+        ApiClient.baseUrl != _baseUrl) {
+      return;
+    }
+    if (_notifications.connected && !_wasConnected) _queueDataRefresh();
+    _wasConnected = _notifications.connected;
     if (_notifications.authCode != null && !_loggingOut) {
       _loggingOut = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
+        if (!mounted ||
+            _notifications.repository.api.token != _token ||
+            ApiClient.baseUrl != _baseUrl) {
           return;
         }
         final store = context.read<AppStore>();
@@ -83,6 +98,7 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
     final toast = _notifications.toast;
     if (toast != null && toast.id != _lastToast && !_loggingOut) {
       _lastToast = toast.id;
+      _queueDataRefresh();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _loggingOut || _lastToast != toast.id) {
           return;
@@ -99,10 +115,26 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
     setState(() {});
   }
 
+  void _queueDataRefresh() {
+    if (_refreshQueued || !mounted || _loggingOut) return;
+    _refreshQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshQueued = false;
+      if (mounted &&
+          !_loggingOut &&
+          _notifications.repository.api.token == _token &&
+          ApiClient.baseUrl == _baseUrl) {
+        _dataRefresh.value++;
+      }
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _notifications.resume();
+      _queueDataRefresh();
     }
   }
 
@@ -110,18 +142,24 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _notifications.removeListener(_changed);
+    _dataRefresh.dispose();
     if (_ownsController) {
       _notifications.dispose();
     }
-    if (_messenger?.mounted == true) {
-      _messenger!.removeCurrentSnackBar();
-    }
+    // ScaffoldMessenger may be unmounting alongside this shell.
+    final messenger = _messenger;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (messenger?.mounted == true) messenger!.removeCurrentSnackBar();
+    });
     super.dispose();
   }
 
   // Hết phiên ở màn con (đơn hàng): đăng xuất giống khi thông báo báo hết phiên.
   void _sessionExpired(ApiException error) {
-    if (_loggingOut || !mounted) {
+    if (_loggingOut ||
+        !mounted ||
+        _notifications.repository.api.token != _token ||
+        ApiClient.baseUrl != _baseUrl) {
       return;
     }
     _loggingOut = true;
@@ -140,11 +178,13 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
       MaterialPageRoute<void>(
         builder: (_) => OrdersScreen(
           api: _notifications.repository.api,
+          refreshSignal: _dataRefresh,
           onSessionExpired: _sessionExpired,
         ),
       ),
     );
     if (mounted) {
+      _queueDataRefresh();
       await _notifications.refresh();
     }
   }
@@ -155,11 +195,13 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
         builder: (_) => OrderDetailScreen(
           api: _notifications.repository.api,
           orderId: id,
+          refreshSignal: _dataRefresh,
           onSessionExpired: _sessionExpired,
         ),
       ),
     );
     if (mounted) {
+      _queueDataRefresh();
       await _notifications.refresh();
     }
   }
@@ -170,17 +212,41 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
         builder: (_) => AuctionDetailScreen(
           auctionId: id,
           repository: AuctionRepository(_notifications.repository.api),
+          refreshSignal: _dataRefresh,
+          onOpenOrder: _order,
         ),
       ),
     );
     if (mounted) {
+      _queueDataRefresh();
+      await _notifications.refresh();
+    }
+  }
+
+  Future<void> _dispute(String id) async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => DisputeDetailScreen(
+        api: _notifications.repository.api,
+        disputeId: id,
+        refreshSignal: _dataRefresh,
+        onSessionExpired: _sessionExpired,
+        onOpenOrder: _order,
+      ),
+    ));
+    if (mounted) {
+      _queueDataRefresh();
       await _notifications.refresh();
     }
   }
 
   Future<void> _open(NotificationItem item) async {
+    if (!mounted || _loggingOut) return;
     final read = await _notifications.markRead(item);
-    if (!mounted || !read || _notifications.authCode != null) {
+    if (!mounted ||
+        !read ||
+        _notifications.authCode != null ||
+        _notifications.repository.api.token != _token ||
+        ApiClient.baseUrl != _baseUrl) {
       return;
     }
     final target = NotificationTarget.fromData(item.data);
@@ -193,6 +259,10 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
     }
     if (target.kind == 'order' && widget.onOpenTarget == null) {
       await _order(target.id);
+      return;
+    }
+    if (target.kind == 'dispute' && widget.onOpenTarget == null) {
+      await _dispute(target.id);
       return;
     }
     final callback = widget.onOpenTarget;
@@ -253,16 +323,23 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
       body: IndexedStack(
         index: _tab,
         children: [
-          const BidderHomeScreen(),
-          const BidderWalletScreen(),
+          BidderHomeScreen(
+              refreshSignal: _dataRefresh,
+              onReturnFromAuction: _queueDataRefresh,
+              onOpenOrder: _order),
+          BidderWalletScreen(refreshSignal: _dataRefresh),
           BidderNotificationsScreen(controller: _notifications, onOpen: _open),
-          AuthProfileScreen(onOrders: _orders, onOpenOrder: _order),
+          AuthProfileScreen(
+              onOrders: _orders,
+              onOpenOrder: _order,
+              refreshSignal: _dataRefresh),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (index) {
           setState(() => _tab = index);
+          if (index == 1 || index == 3) _queueDataRefresh();
           if (index == 2) {
             _notifications.refresh();
           }

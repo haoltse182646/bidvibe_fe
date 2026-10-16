@@ -1,5 +1,18 @@
 # Tiến độ và phạm vi đã triển khai
 
+## Cập nhật tích hợp Hào — bản nền ab15709
+
+Đọc [hao-integration.md](hao-integration.md) để xem trạng thái mới và thứ tự kiểm thử. Các mục từ “Mốc ghi nhận” bên dưới là nhật ký của các lần bàn giao trước, có thể mô tả phần còn chờ đã được tích hợp sau đó.
+
+- Đã kiểm tra checkout sạch: local `develop` và `origin/main` ở `ab15709`, gồm merge PR #9 của Khang. `origin/develop` tại lần đọc còn ở `34e471d`; không suy rằng remote develop đã đồng bộ main.
+- Phần Hiệu và Khang đã có trong bản nền; Hào không cần xây lại màn đơn, seller, Admin, Appraiser, Warehouse.
+- Bản sao QA đã nối thông báo tranh chấp → chi tiết thật, phiên thắng → đơn thật, đồng bộ Ví/Hồ sơ và chi tiết đơn/tranh chấp; giữ bố cục Hồ sơ và bản nháp đang nhập.
+- Kiểm thử tự động: bản nền 204 đạt; bản bổ sung 220 đạt, 2 test BE thật bỏ qua. Chưa kiểm thử thủ công phần bổ sung trên BE/Supabase của nhóm.
+- H04/H08: phần code nối đã có trong gói bàn giao; chờ Hào chép file, manual và PR. H05: report/Admin có đủ phía FE, còn kiểm thử nhiều role với BE thật. H09: review và chuẩn bị phát hành tiếp tục sau manual.
+- Bản bổ sung chưa được chép vào repo thật, commit, push hoặc merge bởi công cụ. Trạng thái Git nêu trên chỉ là lần đọc để chọn bản nền.
+
+## Nhật ký trước đợt tích hợp
+
 Mốc ghi nhận: **16/10/2026**. Đây là ảnh chụp tiến độ, không tự đồng bộ theo GitHub.
 
 ## Bằng chứng và cách đọc
@@ -45,7 +58,22 @@ Thay đổi dùng chung (cần Hào review): `lib/main.dart` (thêm `StoreToastL
 
 Kiểm thử tự động của phần này: `test/order_flow_test.dart`, `test/seller_flow_test.dart`, `test/remote_store_seller_test.dart`, `test/order_live_test.dart` (chỉ chạy khi đặt `BACKEND_URL`, ghi vào DB Docker). Toàn bộ `flutter test`: 196 đạt, 2 bỏ qua (test với backend thật khi thiếu `BACKEND_URL`); `flutter analyze` không có lỗi.
 
-Lưu ý cho màn còn dùng dữ liệu mẫu (Admin, thẩm định, kho): vì `RemoteAppStore` không còn chạy mô phỏng, dữ liệu mẫu của các màn này không tự thay đổi theo thời gian nữa; chỉ đổi khi thao tác hoặc khi nối API thật.
+Các file prototype cũ của Admin/Appraiser/Warehouse vẫn còn trong source nhưng không còn được route từ shell; shell hiện dùng các màn API-backed ghi ở mục K01–K06 bên dưới.
+
+## Phần của Khang (Admin và ops) 
+
+Có code API-backed trong checkout local qua `OpsRepository` và các màn Admin, Appraiser, Warehouse. `flutter analyze` không có issue; `flutter test` đạt 204 test. Test ops dùng HTTP fixture, chưa phải kiểm thử thủ công với BE thật.
+
+| Task | Code local | Trạng thái đã kiểm tra | Còn lại |
+|---|---|---|---|
+| K01 | Dashboard và báo cáo tuần dùng hai endpoint Admin | Fixture API và smoke shell | Chạy thủ công với role Admin/BE thật |
+| K02 | Danh sách cờ, xem chi tiết, pause/verify/safe/terminate | Payload và fixture API; lý do terminate bắt buộc | Kiểm tra auctionId/tác động bidder trên BE dev |
+| K03 | Danh sách tài khoản bidder/seller và ops; tạo/sửa/khoá | Filter, request body và smoke shell | Kiểm tra quyền/self-lockout trên BE thật |
+| K04 | Danh sách, timeline và xử lý tranh chấp `refund`/`keep` | Payload resolution và smoke shell | Đối chiếu hoàn tiền/giải ngân, đơn và thông báo |
+| K05 | Queue `pending_appraisal`/`needs_info`, detail ảnh/lịch sử, decision | Payload quyết định và smoke màn | Ghép với seller submit và bidder thấy phiên thật |
+| K06 | Kho nhận, kiểm định, đóng gói, gửi tracking, xác nhận giao | Đủ năm route trong test contract; smoke board/detail | Test xuyên seller → kho → bidder trên BE thật |
+
+Chưa xác nhận Khang đã nhận task, branch riêng, PR hay merge. Không có endpoint audit Admin hoặc lịch sử thẩm định toàn cục trong hợp đồng hiện có; các trang prototype đó không còn được điều hướng từ shell ops. Ảnh nhận kho, quét mã, grade/kệ là hành vi prototype và không được giả lập trong luồng mới vì chưa có API.
 
 Chưa kiểm tra: người bán mở tranh chấp trên bản điện thoại thật; Admin xử lý tranh chấp rồi giao diện người mua cập nhật; bản release Android (manifest chính chưa khai báo quyền `INTERNET`, cần bổ sung trước khi build release).
 
@@ -57,7 +85,7 @@ Chưa kiểm tra: người bán mở tranh chấp trên bản điện thoại th
 - OTP/2FA bị vô hiệu hóa và ghi chưa khả dụng; chưa có API quản lý thiết bị. Không có danh sách thiết bị thật.
 - Chatbot BE đang dùng câu trả lời theo logic từ khóa; không có bằng chứng kết nối mô hình AI hội thoại hoặc tra cứu số dư cá nhân.
 - Nạp ví và phương thức thanh toán QR/card trong BE là mô phỏng theo docs; không coi là tích hợp thanh toán thương mại.
-- Các màn seller/appraiser/warehouse/admin tồn tại trong source nhưng trạng thái API thực tế cần Hiệu/Khang xác nhận.
+- Seller vẫn theo trạng thái bàn giao của Hiệu ở trên. Shell Admin/Appraiser/Warehouse đã gọi API trong checkout local, nhưng chưa có xác nhận manual BE, PR, merge develop hoặc merge main.
 
 ## Kiểm thử QA đã chạy
 
@@ -91,3 +119,4 @@ Mỗi thay đổi đáng kể thêm một hàng, giữ thông tin không nhạy 
 |---|---|---|---|---|---|---|
 | 16/10/2026 | DOC | Hào | Chuẩn bị bộ docs FE và phân công để đưa vào repo | Đối chiếu source/bàn giao | Chưa commit tại mốc soạn | Chưa xác minh |
 | 16/10/2026 | I01–I08 | Hiệu | Đơn hàng, thanh toán, theo dõi, tin đăng và gửi kho của người bán, tranh chấp, toast của store, khung chờ | `flutter test` 196 đạt; chạy thật trên web với DB Docker | Nhánh `feature/orders-seller-disputes` | Chưa tạo PR |
+| 16/10/2026 | K01–K06 | FE checkout | Nối Admin, Appraiser, Warehouse qua `OpsRepository`; cập nhật API map và smoke fixtures | `flutter test` 204 đạt; `flutter analyze` không issue; chưa manual BE | Chưa xác minh commit/PR | Chưa xác minh |

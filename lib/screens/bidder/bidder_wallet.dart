@@ -3,19 +3,32 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/api_client.dart';
+import '../../core/deferred_refresh.dart';
 import '../../core/remote_app_store.dart';
 import '../../features/wallet/wallet_repository.dart';
 import '../../store.dart';
 
 class BidderWalletScreen extends StatefulWidget {
   final WalletRepository? repository;
-  const BidderWalletScreen({super.key, this.repository});
+  final Listenable? refreshSignal;
+  const BidderWalletScreen({super.key, this.repository, this.refreshSignal});
   @override
   State<BidderWalletScreen> createState() => _BidderWalletScreenState();
 }
 
-class _BidderWalletScreenState extends State<BidderWalletScreen> {
+class _BidderWalletScreenState extends State<BidderWalletScreen>
+    with DeferredRefresh<BidderWalletScreen> {
   late final WalletRepository _repo;
+  late final String? _token;
+  late final String _baseUrl;
+  bool get _active =>
+      mounted && _repo.api.token == _token && ApiClient.baseUrl == _baseUrl;
+  @override
+  Listenable? get refreshSignal => widget.refreshSignal;
+  @override
+  bool get canRefresh => _active && !_loading && !_posting && !_loadingMore;
+  @override
+  Future<void> refreshData() => _load();
   final _amount = TextEditingController();
   final _form = GlobalKey<FormState>();
   WalletSnapshot? _wallet;
@@ -30,9 +43,10 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
   @override
   void initState() {
     super.initState();
-    _repo =
-        widget.repository ??
+    _repo = widget.repository ??
         WalletRepository((context.read<AppStore>() as RemoteAppStore).api);
+    _token = _repo.api.token;
+    _baseUrl = ApiClient.baseUrl;
     _load();
   }
 
@@ -85,7 +99,7 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
         _repo.wallet(),
         _repo.transactions(),
       ]);
-      if (!mounted || generation != _generation) {
+      if (!_active || generation != _generation) {
         return;
       }
       final page = results[1] as WalletPage;
@@ -96,13 +110,14 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
         _uncertain = false;
       });
     } catch (e) {
-      if (!mounted || generation != _generation || _authError(e)) {
+      if (!_active || generation != _generation || _authError(e)) {
         return;
       }
       setState(() => _error = _message(e));
     } finally {
       if (mounted && generation == _generation) {
         setState(() => _loading = false);
+        drainDataRefresh();
       }
     }
   }
@@ -121,7 +136,7 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
     });
     try {
       final page = await _repo.transactions(offset: _transactions.length);
-      if (!mounted || generation != _generation) {
+      if (!_active || generation != _generation) {
         return;
       }
       setState(() {
@@ -129,13 +144,14 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
         _total = page.total;
       });
     } catch (e) {
-      if (!mounted || generation != _generation || _authError(e)) {
+      if (!_active || generation != _generation || _authError(e)) {
         return;
       }
       setState(() => _pageError = _message(e));
     } finally {
       if (mounted && generation == _generation) {
         setState(() => _loadingMore = false);
+        drainDataRefresh();
       }
     }
   }
@@ -168,7 +184,7 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
         ],
       ),
     );
-    if (!mounted || confirmed != true || _posting || _loading || _loadingMore) {
+    if (!_active || confirmed != true || _posting || _loading || _loadingMore) {
       return;
     }
     setState(() {
@@ -178,7 +194,7 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
     var success = false;
     try {
       final wallet = await _repo.topup(amount);
-      if (!mounted) {
+      if (!mounted || !_active) {
         return;
       }
       setState(() => _wallet = wallet);
@@ -188,30 +204,37 @@ class _BidderWalletScreenState extends State<BidderWalletScreen> {
         SnackBar(content: Text('Đã nạp ${_money(amount)} vào ví.')),
       );
     } catch (e) {
-      if (!mounted || _authError(e)) {
+      if (!_active || _authError(e)) {
         return;
       }
-      final knownRejection =
-          e is ApiException &&
+      final knownRejection = e is ApiException &&
           ['VALIDATION_ERROR', 'FORBIDDEN', 'NOT_FOUND'].contains(e.code);
       setState(() {
         _uncertain = !knownRejection;
-        _error = knownRejection ? _message(e) : 'Chưa xác định được kết quả nạp. Hãy tải lại ví và kiểm tra giao dịch trước khi nạp lần nữa.';
+        _error = knownRejection
+            ? _message(e)
+            : 'Chưa xác định được kết quả nạp. Hãy tải lại ví và kiểm tra giao dịch trước khi nạp lần nữa.';
       });
     } finally {
       if (mounted) {
         setState(() => _posting = false);
       }
     }
-    if (mounted && success) {
+    if (_active && success) {
       await _load();
+    } else {
+      drainDataRefresh();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final locked =
-        _loading || _posting || _loadingMore || _uncertain || _wallet == null;
+    final locked = _loading ||
+        _posting ||
+        _loadingMore ||
+        _uncertain ||
+        _wallet == null ||
+        _error != null;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(

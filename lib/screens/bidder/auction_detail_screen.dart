@@ -9,6 +9,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/remote_app_store.dart';
+import '../../core/api_client.dart';
+import '../../features/orders/order_repository.dart';
+import '../orders/order_detail_screen.dart';
 import '../../features/auctions/auction_repository.dart';
 import '../../store.dart';
 
@@ -16,11 +19,15 @@ class AuctionDetailScreen extends StatefulWidget {
   final String auctionId;
   final AuctionRepository repository;
   final AuctionEvents? events;
+  final Listenable? refreshSignal;
+  final Future<void> Function(String)? onOpenOrder;
   const AuctionDetailScreen({
     super.key,
     required this.auctionId,
     required this.repository,
     this.events,
+    this.refreshSignal,
+    this.onOpenOrder,
   });
   @override
   State<AuctionDetailScreen> createState() => _AuctionDetailScreenState();
@@ -31,6 +38,14 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
   late final AuctionLiveController _live;
   bool _loggingOut = false;
   bool _reported = false;
+  bool _openingOrder = false;
+  String? _orderError;
+  late final String? _token;
+  late final String _baseUrl;
+  bool get _active =>
+      mounted &&
+      widget.repository.api.token == _token &&
+      ApiClient.baseUrl == _baseUrl;
   Map<String, dynamic>? get _data => _live.data;
   bool get _loading => _live.loading;
   String? get _error => _live.error;
@@ -39,11 +54,12 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
   void initState() {
     super.initState();
     final token = widget.repository.api.token;
+    _token = token;
+    _baseUrl = ApiClient.baseUrl;
     _live = AuctionLiveController(
       auctionId: widget.auctionId,
       repository: widget.repository,
-      events:
-          widget.events ??
+      events: widget.events ??
           (token == null
               ? null
               : SocketAuctionEvents(auctionId: widget.auctionId, token: token)),
@@ -93,6 +109,71 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
 
   Future<bool> _load() => _live.refresh();
 
+  Future<void> _wonOrder() async {
+    if (!_active ||
+        _openingOrder ||
+        _loading ||
+        _error != null ||
+        _live.dirty ||
+        _data?['won'] != true) {
+      return;
+    }
+    setState(() {
+      _openingOrder = true;
+      _orderError = null;
+    });
+    try {
+      final orders = await OrderRepository(widget.repository.api).mine();
+      if (!mounted || !_active) return;
+      Order? won;
+      for (final order in orders) {
+        if (order.auctionId == widget.auctionId) {
+          won = order;
+          break;
+        }
+      }
+      if (won == null) {
+        setState(() => _orderError =
+            'Đơn thắng đang được cập nhật. Vui lòng thử lại sau ít giây.');
+        return;
+      }
+      if (widget.onOpenOrder != null) {
+        await widget.onOpenOrder!(won.id);
+      } else {
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => OrderDetailScreen(
+            api: widget.repository.api,
+            orderId: won!.id,
+            refreshSignal: widget.refreshSignal,
+            onSessionExpired: _orderSessionExpired,
+          ),
+        ));
+      }
+      if (_active) await _live.refresh();
+    } catch (e) {
+      if (!_active) return;
+      setState(() => _orderError = e is ApiException
+          ? e.message
+          : 'Không tải được đơn thắng. Vui lòng thử lại.');
+      if (e is ApiException) _orderSessionExpired(e);
+    } finally {
+      if (mounted) setState(() => _openingOrder = false);
+    }
+  }
+
+  void _orderSessionExpired(ApiException error) {
+    if (!_active ||
+        _loggingOut ||
+        !const {'UNAUTHORIZED', 'ACCOUNT_SUSPENDED'}.contains(error.code)) {
+      return;
+    }
+    _loggingOut = true;
+    final store = context.read<AppStore>();
+    store.logout();
+    if (store is RemoteAppStore) store.sessionError = error.message;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   Future<void> _report() async {
     if (_data == null || _reported || _live.posting) {
       return;
@@ -122,30 +203,30 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
   }
 
   Widget _row(String name, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: Text(name)),
-        const SizedBox(width: 16),
-        Expanded(child: Text(value, textAlign: TextAlign.end)),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Text(name)),
+            const SizedBox(width: 16),
+            Expanded(child: Text(value, textAlign: TextAlign.end)),
+          ],
+        ),
+      );
 
   Widget _section(String title, List<Widget> children) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          ...children,
-        ],
-      ),
-    ),
-  );
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ...children,
+            ],
+          ),
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -155,9 +236,8 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
         actions: [
           IconButton(
             tooltip: _reported ? 'Đã báo cáo phiên này' : 'Báo cáo phiên',
-            onPressed: _data == null || _reported || _live.posting
-                ? null
-                : _report,
+            onPressed:
+                _data == null || _reported || _live.posting ? null : _report,
             icon: const Icon(Icons.flag_outlined),
           ),
           IconButton(
@@ -195,15 +275,14 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
 
   List<Widget> _content(Map<String, dynamic> data) {
     final seller = data['seller'] as Map? ?? {};
-    final photos =
-        (data['photos'] as List? ?? [])
-            .map((p) => Map<String, dynamic>.from(p as Map))
-            .toList()
-          ..sort(
-            (a, b) => ((a['orderIndex'] as num?) ?? 0).compareTo(
-              (b['orderIndex'] as num?) ?? 0,
-            ),
-          );
+    final photos = (data['photos'] as List? ?? [])
+        .map((p) => Map<String, dynamic>.from(p as Map))
+        .toList()
+      ..sort(
+        (a, b) => ((a['orderIndex'] as num?) ?? 0).compareTo(
+          (b['orderIndex'] as num?) ?? 0,
+        ),
+      );
     if (photos.isEmpty && data['coverUrl'] is String) {
       photos.add({'url': data['coverUrl']});
     }
@@ -216,12 +295,12 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
     final state = cancelled
         ? 'Đã hủy'
         : ended
-        ? 'Đã kết thúc'
-        : paused
-        ? 'Tạm dừng'
-        : data['isLive'] == true
-        ? 'Đang diễn ra'
-        : 'Chưa nhận lượt giá / chờ máy chủ cập nhật';
+            ? 'Đã kết thúc'
+            : paused
+                ? 'Tạm dừng'
+                : data['isLive'] == true
+                    ? 'Đang diễn ra'
+                    : 'Chưa nhận lượt giá / chờ máy chủ cập nhật';
     return [
       Text(
         '${data['title'] ?? ''}',
@@ -292,8 +371,8 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
           _live.events == null
               ? 'Chưa mở kết nối thời gian thực.'
               : _live.connected
-              ? 'Đang kết nối thời gian thực.'
-              : 'Mất kết nối thời gian thực, đang thử kết nối lại.',
+                  ? 'Đang kết nối thời gian thực.'
+                  : 'Mất kết nối thời gian thực, đang thử kết nối lại.',
         ),
       ]),
       _section('Tham gia và tiền cọc', [
@@ -313,7 +392,20 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
           ),
         if (!ended && !cancelled && data['leading'] == true)
           const Text('Bạn đang dẫn đầu'),
-        if (ended && data['won'] == true) const Text('Bạn đã thắng phiên này'),
+        if (ended && data['won'] == true) ...[
+          const Text('Bạn đã thắng phiên này'),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed:
+                _openingOrder || _loading || _error != null || _live.dirty
+                    ? null
+                    : _wonOrder,
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: Text(_openingOrder ? 'Đang mở đơn…' : 'Xem đơn thắng'),
+          ),
+          if (_orderError != null)
+            Text(_orderError!, style: const TextStyle(color: Colors.red)),
+        ],
         if (ended && data['winnerId'] == null)
           const Text('Phiên kết thúc không có người thắng'),
       ]),
