@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models.dart';
 import '../../store.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
@@ -62,6 +63,28 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
   int photoCount = 2;
   _AiState aiState = _AiState.idle;
   bool submitted = false;
+  bool _submitting = false; // chặn bấm đúp: gửi tin gồm nhiều request nối tiếp
+
+  PriceSuggestion? liveAi; // gợi ý thật từ backend; null = gợi ý mẫu (prototype)
+
+  Future<void> _askAi(AppStore store) async {
+    setState(() => aiState = _AiState.loading);
+    PriceSuggestion? real;
+    try {
+      real = await store.suggestStartingPrice(cat: cat, cond: cond);
+    } catch (_) {
+      // Store đã hiện lý do; quay về để người bán thử lại.
+      if (mounted) setState(() => aiState = _AiState.idle);
+      return;
+    }
+    if (real == null) await Future<void>.delayed(const Duration(milliseconds: 1200));
+    if (mounted) {
+      setState(() {
+        liveAi = real;
+        aiState = _AiState.done;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -74,7 +97,10 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<AppStore>();
-    final ai = _aiByCat[cat]!;
+    final live = liveAi;
+    final ai = live != null
+        ? _AiSuggestion(price: live.price, range: '${store.money(live.low)} – ${store.money(live.high)}', reasons: [live.explanation])
+        : _aiByCat[cat]!;
     final start = int.tryParse(startCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
     final canSubmit = titleCtrl.text.trim().isNotEmpty && start != null && start > 0;
 
@@ -177,7 +203,10 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
-            children: ['Mới', 'Như mới', 'Đã qua sử dụng'].map((c) => _chip(c, c, cond, (v) => setState(() => cond = v))).toList(),
+            children: ['Mới', 'Như mới', 'Đã qua sử dụng'].map((c) => _chip(c, c, cond, (v) => setState(() {
+              cond = v;
+              aiState = _AiState.idle; // giá gợi ý phụ thuộc tình trạng
+            }))).toList(),
           ),
 
           const SizedBox(height: 18),
@@ -207,12 +236,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
                     child: OutlinedButton(
                       onPressed: titleCtrl.text.trim().isEmpty
                           ? null
-                          : () {
-                              setState(() => aiState = _AiState.loading);
-                              Future.delayed(const Duration(milliseconds: 1200), () {
-                                if (mounted) setState(() => aiState = _AiState.done);
-                              });
-                            },
+                          : () => _askAi(store),
                       style: OutlinedButton.styleFrom(foregroundColor: AppColors.accent, side: const BorderSide(color: AppColors.accent, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       child: const Text('Nhờ AI gợi ý giá', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
@@ -248,7 +272,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
                       ),
                       const SizedBox(width: 8),
                       OutlinedButton(
-                        onPressed: () => setState(() => aiState = _AiState.loading),
+                        onPressed: () => _askAi(store),
                         style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFC9D2E6)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                         child: const Text('Tính lại'),
                       ),
@@ -275,10 +299,11 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           const Text('Phiên chỉ được công khai sau khi chuyên gia thẩm định duyệt hồ sơ. Bạn chỉ gửi hàng đến kho sau khi có người thắng và thanh toán.', style: TextStyle(fontSize: 12, color: AppColors.muted, height: 1.4)),
           const SizedBox(height: 12),
           BigActionButton(
-            label: 'Gửi để thẩm định',
-            onPressed: canSubmit
-                ? () {
-                    store.createListing(
+            label: _submitting ? 'Đang gửi…' : 'Gửi để thẩm định',
+            onPressed: canSubmit && !_submitting
+                ? () async {
+                    setState(() => _submitting = true);
+                    final ok = await store.createListing(
                       title: titleCtrl.text.trim(),
                       cat: cat,
                       start: start,
@@ -287,7 +312,11 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
                       durationHours: dur == '7 ngày' ? 168 : (dur == '3 ngày' ? 72 : 24),
                       photos: photoCount,
                     );
-                    setState(() => submitted = true);
+                    if (!mounted) return;
+                    setState(() {
+                      _submitting = false;
+                      if (ok) submitted = true;
+                    });
                   }
                 : null,
           ),

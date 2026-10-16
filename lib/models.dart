@@ -169,6 +169,9 @@ class SellerListing {
   String? note; // lý do từ chối / ghi chú của thẩm định viên
   List<String> requests; // yêu cầu bổ sung đang chờ người bán xử lý
 
+  /// Quyền sửa do backend quyết định (dữ liệu thật); null = suy ra từ trạng thái như prototype.
+  bool? editable;
+
   SellerListing({
     required this.id,
     required this.title,
@@ -186,11 +189,12 @@ class SellerListing {
     this.auctionId,
     this.note,
     List<String>? requests,
+    this.editable,
   })  : start = start ?? price,
         requests = requests ?? [];
 
   /// Người bán chỉ được sửa tham số phiên trước khi có người đặt giá.
-  bool get canEdit => status == 'appraisal' || status == 'needinfo' || (status == 'live' && count == 0);
+  bool get canEdit => editable ?? (status == 'appraisal' || status == 'needinfo' || (status == 'live' && count == 0));
 }
 
 class Shipment {
@@ -368,7 +372,7 @@ class UserAccount {
   String address;
   String password;
   final String role; // bidder | seller | appraiser | warehouse | admin
-  final String? shop; // tên gian hàng (chỉ Seller)
+  String? shop; // tên gian hàng (chỉ Seller)
   String status; // active | suspended
   final int load; // tải công việc / số phiên tham gia tuỳ vai trò
   bool twoFactor;
@@ -405,4 +409,14 @@ class AuditEntry {
   final String? ref;
   final int? amount;
   AuditEntry({required this.id, required this.at, required this.kind, required this.actor, required this.action, this.ref, this.amount});
+}
+
+/// Gợi ý giá khởi điểm từ backend (`POST /api/ai/suggest-price`).
+class PriceSuggestion {
+  final int price;
+  final int low;
+  final int high;
+  final String explanation;
+  final bool fromHistory; // true: theo lịch sử phiên; false: khung giá soạn sẵn
+  const PriceSuggestion({required this.price, required this.low, required this.high, required this.explanation, required this.fromHistory});
 }

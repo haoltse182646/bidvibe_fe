@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/remote_app_store.dart';
+import '../../core/api_client.dart';
 import '../../features/auctions/auction_repository.dart';
 import '../../features/notifications/notification_controller.dart';
 import '../../features/notifications/notification_events.dart';
 import '../../features/notifications/notification_repository.dart';
 import '../../store.dart';
 import '../auth/auth_profile.dart';
+import '../orders/order_detail_screen.dart';
+import '../orders/orders_screen.dart';
 import 'auction_detail_screen.dart';
 import 'bidder_home.dart';
 import 'bidder_wallet.dart';
@@ -116,6 +119,51 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  // Hết phiên ở màn con (đơn hàng): đăng xuất giống khi thông báo báo hết phiên.
+  void _sessionExpired(ApiException error) {
+    if (_loggingOut || !mounted) {
+      return;
+    }
+    _loggingOut = true;
+    final store = context.read<AppStore>();
+    store.logout();
+    if (store is RemoteAppStore) {
+      store.sessionError = error.code == 'ACCOUNT_SUSPENDED'
+          ? 'Tài khoản đã bị tạm khóa.'
+          : 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    }
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _orders() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OrdersScreen(
+          api: _notifications.repository.api,
+          onSessionExpired: _sessionExpired,
+        ),
+      ),
+    );
+    if (mounted) {
+      await _notifications.refresh();
+    }
+  }
+
+  Future<void> _order(String id) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => OrderDetailScreen(
+          api: _notifications.repository.api,
+          orderId: id,
+          onSessionExpired: _sessionExpired,
+        ),
+      ),
+    );
+    if (mounted) {
+      await _notifications.refresh();
+    }
+  }
+
   Future<void> _auction(String id) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -141,6 +189,10 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
     }
     if (target.kind == 'auction') {
       await _auction(target.id);
+      return;
+    }
+    if (target.kind == 'order' && widget.onOpenTarget == null) {
+      await _order(target.id);
       return;
     }
     final callback = widget.onOpenTarget;
@@ -204,7 +256,7 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
           const BidderHomeScreen(),
           const BidderWalletScreen(),
           BidderNotificationsScreen(controller: _notifications, onOpen: _open),
-          const AuthProfileScreen(),
+          AuthProfileScreen(onOrders: _orders, onOpenOrder: _order),
         ],
       ),
       bottomNavigationBar: NavigationBar(
