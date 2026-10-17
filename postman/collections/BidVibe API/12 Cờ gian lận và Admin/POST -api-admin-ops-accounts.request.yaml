@@ -1,0 +1,21 @@
+$kind: http-request
+name: POST /api/admin/ops-accounts
+description: "Quyền: admin. Chi tiết: docs/api.md mục 14."
+url: "{{base_url}}/api/admin/ops-accounts"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Thẩm định mới",
+      "email": "test_be2_postman_ops_{{$timestamp}}@example.com",
+      "role": "appraiser",
+      "password": "123456"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+order: 6000

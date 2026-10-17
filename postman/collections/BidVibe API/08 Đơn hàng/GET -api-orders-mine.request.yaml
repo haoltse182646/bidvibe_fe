@@ -1,0 +1,18 @@
+$kind: http-request
+name: GET /api/orders/mine
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 10."
+url: "{{base_url}}/api/orders/mine"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success && j.data.orders.length) pm.environment.set("order_id", j.data.orders[0].id);
+    language: text/javascript
+order: 1000

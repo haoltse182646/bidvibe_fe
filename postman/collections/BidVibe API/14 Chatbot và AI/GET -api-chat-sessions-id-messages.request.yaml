@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/chat/sessions/:id/messages
+description: "Quyền: bidder, seller. Chi tiết: docs/api.md mục 16."
+url: "{{base_url}}/api/chat/sessions/{{session_id}}/messages"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 2000

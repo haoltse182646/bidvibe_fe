@@ -1,0 +1,19 @@
+$kind: http-request
+name: POST /api/admin/disputes/:id/resolve
+description: "Quyền: admin. Chi tiết: docs/api.md mục 13."
+url: "{{base_url}}/api/admin/disputes/{{dispute_id}}/resolve"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "resolution": "refund",
+      "note": "Hàng hư hỏng so với mô tả"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+order: 4000

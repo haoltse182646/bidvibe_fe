@@ -1,0 +1,22 @@
+$kind: http-request
+name: GET /api/auctions
+description: "Quyền: mọi vai trò. Chi tiết: docs/api.md mục 7."
+url: "{{base_url}}/api/auctions?status=live&sort=ending&limit=20"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  status: live
+  sort: ending
+  limit: "20"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success && j.data.auctions.length) pm.environment.set("auction_id", j.data.auctions[0].id);
+    language: text/javascript
+order: 1000

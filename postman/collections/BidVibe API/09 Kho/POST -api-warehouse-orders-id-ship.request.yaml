@@ -1,0 +1,19 @@
+$kind: http-request
+name: POST /api/warehouse/orders/:id/ship
+description: "Quyền: warehouse. Chi tiết: docs/api.md mục 11."
+url: "{{base_url}}/api/warehouse/orders/{{order_id}}/ship"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "carrier": "GHN Express",
+      "trackingCode": "GHN0000001"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_warehouse}}"
+order: 5000

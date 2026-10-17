@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /api/warehouse/orders
+description: "Quyền: warehouse. Chi tiết: docs/api.md mục 11."
+url: "{{base_url}}/api/warehouse/orders?stage=inspecting"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  stage: inspecting
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_warehouse}}"
+order: 1000

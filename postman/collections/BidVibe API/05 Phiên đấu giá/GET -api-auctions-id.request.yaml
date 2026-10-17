@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/auctions/:id
+description: "Quyền: mọi vai trò. Chi tiết: docs/api.md mục 7."
+url: "{{base_url}}/api/auctions/{{auction_id}}"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 2000

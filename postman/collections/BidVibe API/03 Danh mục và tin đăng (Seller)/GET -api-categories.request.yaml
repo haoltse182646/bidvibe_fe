@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/categories
+description: "Quyền: mọi vai trò. Chi tiết: docs/api.md mục 5."
+url: "{{base_url}}/api/categories"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 1000

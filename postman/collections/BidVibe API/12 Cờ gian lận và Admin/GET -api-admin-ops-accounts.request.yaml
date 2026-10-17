@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/admin/ops-accounts
+description: "Quyền: admin. Chi tiết: docs/api.md mục 14."
+url: "{{base_url}}/api/admin/ops-accounts"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+order: 5000

@@ -1,0 +1,24 @@
+$kind: http-request
+name: POST /api/appraisals/:listingId/decision
+description: "Quyền: appraiser. Chi tiết: docs/api.md mục 6."
+url: "{{base_url}}/api/appraisals/{{listing_id}}/decision"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "decision": "approve"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_appraiser}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success && j.data.auctionId) pm.environment.set("auction_id", j.data.auctionId);
+    language: text/javascript
+order: 3000

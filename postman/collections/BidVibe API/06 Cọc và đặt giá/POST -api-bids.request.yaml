@@ -1,0 +1,19 @@
+$kind: http-request
+name: POST /api/bids
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 8."
+url: "{{base_url}}/api/bids"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "auctionId": "{{auction_id}}",
+      "increment": 50000
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 2000

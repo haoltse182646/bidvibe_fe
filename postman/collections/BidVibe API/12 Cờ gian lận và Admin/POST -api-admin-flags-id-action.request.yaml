@@ -1,0 +1,18 @@
+$kind: http-request
+name: POST /api/admin/flags/:id/action
+description: "Quyền: admin. Chi tiết: docs/api.md mục 14."
+url: "{{base_url}}/api/admin/flags/{{flag_id}}/action"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "pause"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+order: 4000

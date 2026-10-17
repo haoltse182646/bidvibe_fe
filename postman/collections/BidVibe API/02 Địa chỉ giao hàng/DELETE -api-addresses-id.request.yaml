@@ -1,0 +1,12 @@
+$kind: http-request
+name: DELETE /api/addresses/:id
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 4."
+url: "{{base_url}}/api/addresses/{{address_id}}"
+method: DELETE
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 5000

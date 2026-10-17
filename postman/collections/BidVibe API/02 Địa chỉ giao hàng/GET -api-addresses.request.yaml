@@ -1,0 +1,18 @@
+$kind: http-request
+name: GET /api/addresses
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 4."
+url: "{{base_url}}/api/addresses"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success && j.data.addresses.length) pm.environment.set("address_id", j.data.addresses[0].id);
+    language: text/javascript
+order: 1000

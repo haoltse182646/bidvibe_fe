@@ -1,0 +1,20 @@
+$kind: http-request
+name: GET /api/admin/flags
+description: "Quyền: admin. Chi tiết: docs/api.md mục 14."
+url: "{{base_url}}/api/admin/flags?status=pending"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  status: pending
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success && j.data.flags.length) pm.environment.set("flag_id", j.data.flags[0].id);
+    language: text/javascript
+order: 3000

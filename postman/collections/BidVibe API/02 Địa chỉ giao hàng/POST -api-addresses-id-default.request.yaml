@@ -1,0 +1,12 @@
+$kind: http-request
+name: POST /api/addresses/:id/default
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 4."
+url: "{{base_url}}/api/addresses/{{address_id}}/default"
+method: POST
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 4000

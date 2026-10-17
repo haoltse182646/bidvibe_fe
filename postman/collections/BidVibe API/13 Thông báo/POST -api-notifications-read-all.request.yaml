@@ -1,0 +1,10 @@
+$kind: http-request
+name: POST /api/notifications/read-all
+description: "Quyền: bidder, seller. Đánh dấu mọi thông báo đã đọc, trả { updated }. Chi tiết: docs/api.md mục 15."
+url: "{{base_url}}/api/notifications/read-all"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 3000

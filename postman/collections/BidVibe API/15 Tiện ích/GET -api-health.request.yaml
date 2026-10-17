@@ -1,0 +1,10 @@
+$kind: http-request
+name: GET /api/health
+description: "Quyền: không cần đăng nhập. Chi tiết: docs/api.md mục 17. Trả db: 'ok' | 'error'; database lỗi thì 503."
+url: "{{base_url}}/api/health"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: noauth
+order: 1000

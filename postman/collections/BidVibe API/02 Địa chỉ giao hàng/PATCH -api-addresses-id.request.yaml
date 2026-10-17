@@ -1,0 +1,18 @@
+$kind: http-request
+name: PATCH /api/addresses/:id
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 4."
+url: "{{base_url}}/api/addresses/{{address_id}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "addressLine": "45A Võ Văn Tần"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 3000

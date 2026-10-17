@@ -1,0 +1,24 @@
+$kind: http-request
+name: POST /api/uploads/images
+description: "Quyền: bidder, seller. form-data, trường files (chọn 1–8 ảnh JPEG/PNG/WEBP, mỗi ảnh ≤ 5 MB). Trả { urls } để gửi vào POST /api/listings/:id/photos. Chưa cấu hình Storage: 503 UPLOAD_NOT_CONFIGURED. Chi tiết: docs/api.md mục 5."
+url: "{{base_url}}/api/uploads/images?purpose=listing"
+method: POST
+queryParams:
+  purpose: listing
+body:
+  type: formdata
+  content:
+    - type: file
+      key: files
+      src: []
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success) pm.collectionVariables.set("uploaded_urls", JSON.stringify(j.data.urls));
+    language: text/javascript
+order: 5000

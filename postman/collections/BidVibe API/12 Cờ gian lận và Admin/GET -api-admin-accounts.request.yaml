@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /api/admin/accounts
+description: "Quyền: admin. Chi tiết: docs/api.md mục 14."
+url: "{{base_url}}/api/admin/accounts?role=bidder"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  role: bidder
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+order: 8000

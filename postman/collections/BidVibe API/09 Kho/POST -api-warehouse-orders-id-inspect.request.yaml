@@ -1,0 +1,19 @@
+$kind: http-request
+name: POST /api/warehouse/orders/:id/inspect
+description: "Quyền: warehouse. Chi tiết: docs/api.md mục 11."
+url: "{{base_url}}/api/warehouse/orders/{{order_id}}/inspect"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "result": "match",
+      "notes": "Đạt, tình trạng Như mới"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_warehouse}}"
+order: 3000

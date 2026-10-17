@@ -1,0 +1,29 @@
+$kind: http-request
+name: POST /api/addresses
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 4."
+url: "{{base_url}}/api/addresses"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "recipientName": "Nguyễn Minh Anh",
+      "phone": "0903 112 233",
+      "addressLine": "45 Võ Văn Tần",
+      "ward": "Phường 6",
+      "district": "Quận 3",
+      "city": "TP.HCM"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success) pm.environment.set("address_id", j.data.id);
+    language: text/javascript
+order: 2000

@@ -1,0 +1,38 @@
+name: BidVibe local
+values:
+  - key: base_url
+    value: 'http://localhost:5000'
+  - key: token
+    value: ''
+  - key: token_bidder
+    value: ''
+  - key: token_seller
+    value: ''
+  - key: token_appraiser
+    value: ''
+  - key: token_warehouse
+    value: ''
+  - key: token_admin
+    value: ''
+  - key: auction_id
+    value: ''
+  - key: order_id
+    value: ''
+  - key: listing_id
+    value: ''
+  - key: photo_id
+    value: ''
+  - key: address_id
+    value: ''
+  - key: dispute_id
+    value: ''
+  - key: flag_id
+    value: ''
+  - key: ops_account_id
+    value: ''
+  - key: account_id
+    value: ''
+  - key: notification_id
+    value: ''
+  - key: session_id
+    value: ''

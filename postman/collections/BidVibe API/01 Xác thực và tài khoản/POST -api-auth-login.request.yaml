@@ -1,0 +1,23 @@
+$kind: http-request
+name: POST /api/auth/login
+description: "Quyền: không cần đăng nhập. Chi tiết: docs/api.md mục 3."
+url: "{{base_url}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "minhanh@gmail.com",
+      "password": "123456"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success) { pm.environment.set("token_" + j.data.role, j.data.token); pm.environment.set("token", j.data.token); }
+    language: text/javascript
+order: 2000

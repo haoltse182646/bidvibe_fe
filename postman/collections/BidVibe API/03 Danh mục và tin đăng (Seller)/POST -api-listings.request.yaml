@@ -1,0 +1,29 @@
+$kind: http-request
+name: POST /api/listings
+description: "Quyền: seller. Chi tiết: docs/api.md mục 5."
+url: "{{base_url}}/api/listings"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Máy nghe nhạc cassette 1988",
+      "categoryCode": "elec",
+      "startingPrice": 1000000,
+      "durationHours": 24,
+      "condition": "Như mới",
+      "description": "Còn chạy tốt"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success) pm.environment.set("listing_id", j.data.id);
+    language: text/javascript
+order: 2000

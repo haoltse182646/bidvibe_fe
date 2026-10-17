@@ -1,0 +1,19 @@
+$kind: http-request
+name: POST /api/ai/suggest-price
+description: "Quyền: seller, appraiser. Chi tiết: docs/api.md mục 16."
+url: "{{base_url}}/api/ai/suggest-price"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "categoryCode": "elec",
+      "condition": "Như mới"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+order: 3000

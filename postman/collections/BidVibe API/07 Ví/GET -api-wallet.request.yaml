@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/wallet
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 9."
+url: "{{base_url}}/api/wallet"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 1000

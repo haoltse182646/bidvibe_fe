@@ -1,0 +1,24 @@
+$kind: http-request
+name: POST /api/chat/messages
+description: "Quyền: bidder, seller. Chi tiết: docs/api.md mục 16."
+url: "{{base_url}}/api/chat/messages"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "content": "Đặt cọc như thế nào?"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success) pm.environment.set("session_id", j.data.sessionId);
+    language: text/javascript
+order: 1000

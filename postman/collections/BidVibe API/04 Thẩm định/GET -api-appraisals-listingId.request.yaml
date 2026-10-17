@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/appraisals/:listingId
+description: "Quyền: appraiser. Chi tiết: docs/api.md mục 6."
+url: "{{base_url}}/api/appraisals/{{listing_id}}"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_appraiser}}"
+order: 2000

@@ -1,0 +1,2 @@
+$kind: collection
+description: 'Sinh từ bảng tra route trong docs/api.md (khớp 100% với code qua npm run docs:check). Chạy "POST /api/auth/login" / "POST /api/auth/ops/login" trước: token tự lưu vào biến token_<role> của environment. Một số request tự lưu id (auction_id, order_id, listing_id, address_id...) để request sau dùng.'

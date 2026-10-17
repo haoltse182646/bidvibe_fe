@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /api/wallet/transactions
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 9."
+url: "{{base_url}}/api/wallet/transactions?limit=20"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  limit: "20"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 2000

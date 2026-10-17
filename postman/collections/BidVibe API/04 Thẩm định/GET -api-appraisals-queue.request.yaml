@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /api/appraisals/queue
+description: "Quyền: appraiser. Chi tiết: docs/api.md mục 6."
+url: "{{base_url}}/api/appraisals/queue?status=pending_appraisal"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  status: pending_appraisal
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_appraiser}}"
+order: 1000

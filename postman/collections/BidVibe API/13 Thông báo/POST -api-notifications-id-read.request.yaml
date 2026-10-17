@@ -1,0 +1,12 @@
+$kind: http-request
+name: POST /api/notifications/:id/read
+description: "Quyền: bidder, seller. Chi tiết: docs/api.md mục 15."
+url: "{{base_url}}/api/notifications/{{notification_id}}/read"
+method: POST
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 2000

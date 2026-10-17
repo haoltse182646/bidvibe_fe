@@ -1,0 +1,20 @@
+$kind: http-request
+name: PATCH /api/me
+description: "Quyền: bidder, seller. Sửa họ tên / số điện thoại / ảnh đại diện; Seller thêm shopName. Chi tiết: docs/api.md mục 3."
+url: "{{base_url}}/api/me"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Trần Thu Hà",
+      "phone": "0903 222 333",
+      "shopName": "Gốm Hà Bát Tràng"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+order: 5000

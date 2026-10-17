@@ -1,0 +1,20 @@
+$kind: http-request
+name: POST /api/listings/:id/photos
+description: "Quyền: seller. Chi tiết: docs/api.md mục 5."
+url: "{{base_url}}/api/listings/{{listing_id}}/photos"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "urls": [
+        "https://picsum.photos/seed/doc1/800/600"
+      ]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+order: 6000

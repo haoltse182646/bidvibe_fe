@@ -1,0 +1,18 @@
+$kind: http-request
+name: POST /api/orders/:id/pay
+description: "Quyền: bidder. Chi tiết: docs/api.md mục 10."
+url: "{{base_url}}/api/orders/{{order_id}}/pay"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "method": "wallet"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 3000

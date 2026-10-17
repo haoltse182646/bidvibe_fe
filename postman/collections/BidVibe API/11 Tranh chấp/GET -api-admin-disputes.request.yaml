@@ -1,0 +1,20 @@
+$kind: http-request
+name: GET /api/admin/disputes
+description: "Quyền: admin. Chi tiết: docs/api.md mục 13."
+url: "{{base_url}}/api/admin/disputes?status=open"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  status: open
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_admin}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      const j = pm.response.json();
+      if (j.success && j.data.disputes.length) pm.environment.set("dispute_id", j.data.disputes[0].id);
+    language: text/javascript
+order: 3000

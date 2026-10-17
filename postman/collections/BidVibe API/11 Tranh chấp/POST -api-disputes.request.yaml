@@ -1,0 +1,20 @@
+$kind: http-request
+name: POST /api/disputes
+description: "Quyền: bidder, seller. Chi tiết: docs/api.md mục 13."
+url: "{{base_url}}/api/disputes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "orderId": "{{order_id}}",
+      "title": "Hàng không đúng mô tả",
+      "reason": "Mô tả ghi nguyên vẹn nhưng có vết nứt"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 1000

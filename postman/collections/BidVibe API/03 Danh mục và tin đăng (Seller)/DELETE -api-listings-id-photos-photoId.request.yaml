@@ -1,0 +1,10 @@
+$kind: http-request
+name: DELETE /api/listings/:id/photos/:photoId
+description: "Quyền: seller, tin của mình khi draft / needs_info. photo_id lấy từ photos[].id của tin. Chi tiết: docs/api.md mục 5."
+url: "{{base_url}}/api/listings/{{listing_id}}/photos/{{photo_id}}"
+method: DELETE
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+order: 7000

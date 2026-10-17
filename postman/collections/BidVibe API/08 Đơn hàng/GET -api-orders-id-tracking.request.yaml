@@ -1,0 +1,12 @@
+$kind: http-request
+name: GET /api/orders/:id/tracking
+description: "Quyền: bidder, seller. Chi tiết: docs/api.md mục 10."
+url: "{{base_url}}/api/orders/{{order_id}}/tracking"
+method: GET
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_bidder}}"
+order: 7000

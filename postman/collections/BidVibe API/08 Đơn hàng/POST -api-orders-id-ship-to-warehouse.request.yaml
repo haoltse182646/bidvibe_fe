@@ -1,0 +1,12 @@
+$kind: http-request
+name: POST /api/orders/:id/ship-to-warehouse
+description: "Quyền: seller. Chi tiết: docs/api.md mục 10."
+url: "{{base_url}}/api/orders/{{order_id}}/ship-to-warehouse"
+method: POST
+headers:
+  Content-Type: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+order: 6000

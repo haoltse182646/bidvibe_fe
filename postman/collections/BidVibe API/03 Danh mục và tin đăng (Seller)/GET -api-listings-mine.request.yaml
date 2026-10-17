@@ -1,0 +1,14 @@
+$kind: http-request
+name: GET /api/listings/mine
+description: "Quyền: seller. Chi tiết: docs/api.md mục 5."
+url: "{{base_url}}/api/listings/mine?limit=20"
+method: GET
+headers:
+  Content-Type: application/json
+queryParams:
+  limit: "20"
+auth:
+  type: bearer
+  credentials:
+    token: "{{token_seller}}"
+order: 3000
