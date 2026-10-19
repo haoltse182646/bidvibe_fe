@@ -1,4 +1,5 @@
 import '../../core/api_client.dart';
+import '../../core/picked_image.dart';
 import '../../models.dart';
 
 String _s(dynamic v, [String d = '']) => v == null ? d : '$v';
@@ -43,6 +44,7 @@ class SellerData {
 class DraftProgress {
   String? id;
   bool photosAdded = false;
+  List<String>? uploadedUrls; // ảnh đã lên Storage nhưng chưa gắn vào tin
 }
 
 class ListingRepository {
@@ -56,7 +58,31 @@ class ListingRepository {
     }
   }
 
-  /// Ảnh mẫu: tải ảnh thật lên cần Storage, nhóm tạm dùng URL mẫu.
+  static const maxImageBytes = 5 * 1024 * 1024;
+
+  /// Tải ảnh người bán chọn lên Storage, trả URL công khai theo đúng thứ tự.
+  Future<List<String>> uploadImages(List<PickedImage> images) async {
+    for (final img in images) {
+      if (img.bytes.length > maxImageBytes) {
+        throw const ApiException('FILE_TOO_LARGE', 'Mỗi ảnh tối đa 5 MB.');
+      }
+    }
+    final result = await api.uploadImages([
+      for (final img in images) (bytes: img.bytes, filename: img.name),
+    ], purpose: 'listing');
+    final urls = result['urls'];
+    if (urls is! List ||
+        urls.length != images.length ||
+        urls.any((u) => u is! String)) {
+      throw const ApiException(
+        'INVALID_RESPONSE',
+        'Máy chủ chưa trả đường dẫn ảnh hợp lệ.',
+      );
+    }
+    return urls.cast<String>();
+  }
+
+  /// Ảnh mẫu, chỉ dùng khi không có ảnh thật (ví dụ test).
   static List<String> sampleUrls(String seed, int n) => [
     for (var i = 0; i < (n < 1 ? 1 : n); i++)
       'https://picsum.photos/seed/bv$seed-$i/800/600',
@@ -73,6 +99,7 @@ class ListingRepository {
     required String condition,
     String description = '',
     int photos = 2,
+    List<PickedImage> images = const [],
     required DraftProgress progress,
   }) async {
     final fields = {
@@ -97,10 +124,13 @@ class ListingRepository {
       await update(id, fields); // lần gửi lại: đồng bộ nội dung mới nhất
     }
     if (!progress.photosAdded) {
+      final urls = images.isEmpty
+          ? sampleUrls(id, photos)
+          : (progress.uploadedUrls ??= await uploadImages(images));
       await api.request(
         '/api/listings/$id/photos',
         method: 'POST',
-        body: {'urls': sampleUrls(id, photos)},
+        body: {'urls': urls},
       );
       progress.photosAdded = true;
     }
@@ -113,18 +143,25 @@ class ListingRepository {
     await api.request('/api/listings/$id', method: 'PATCH', body: fields);
   }
 
-  Future<void> resubmit(String id, {int extraPhotos = 0}) async {
+  Future<void> resubmit(
+    String id, {
+    int extraPhotos = 0,
+    List<PickedImage> images = const [],
+  }) async {
     checkId(id);
-    if (extraPhotos > 0) {
+    final urls = images.isNotEmpty
+        ? await uploadImages(images)
+        : (extraPhotos > 0
+              ? sampleUrls(
+                  '$id-more${DateTime.now().millisecondsSinceEpoch}',
+                  extraPhotos,
+                )
+              : <String>[]);
+    if (urls.isNotEmpty) {
       await api.request(
         '/api/listings/$id/photos',
         method: 'POST',
-        body: {
-          'urls': sampleUrls(
-            '$id-more${DateTime.now().millisecondsSinceEpoch}',
-            extraPhotos,
-          ),
-        },
+        body: {'urls': urls},
       );
     }
     await api.request('/api/listings/$id/resubmit', method: 'POST');

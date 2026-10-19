@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:bidvibe/core/api_client.dart';
+import 'package:bidvibe/core/picked_image.dart';
 import 'package:bidvibe/core/remote_app_store.dart';
 import 'package:bidvibe/models.dart';
 import 'package:bidvibe/store.dart';
@@ -276,7 +278,12 @@ void main() {
       addTearDown(() => FlutterError.onError = original);
       final gate = Completer<bool>();
       final store = _CreateStore(gate);
-      await pump(t, store, Scaffold(body: SellerCreateScreen(onDone: () {})));
+      final png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+      await pump(t, store, Scaffold(body: SellerCreateScreen(onDone: () {}, pickImages: (_) async => [XFile.fromData(png, name: 'a.png')])));
+      await t.tap(find.byKey(const ValueKey('photo-slot-0')));
+      await t.pump();
+      await t.pump();
+      expect(find.byType(Image), findsOneWidget);
       await t.enterText(find.byType(TextField).at(0), 'Giày Nike');
       await t.enterText(find.byType(TextField).at(2), '1200000');
       await t.pump();
@@ -402,6 +409,7 @@ class _CreateStore extends AppStore {
     String cond = 'Đã qua sử dụng',
     int durationHours = 24,
     int photos = 2,
+    List<PickedImage> images = const [],
   }) {
     creates++;
     return gate.future;

@@ -7,6 +7,7 @@ import '../features/orders/order_repository.dart';
 import '../models.dart';
 import '../store.dart';
 import 'api_client.dart';
+import 'picked_image.dart';
 
 // Authentication uses the BE. Other inherited features are still prototypes.
 class RemoteAppStore extends AppStore {
@@ -276,6 +277,7 @@ class RemoteAppStore extends AppStore {
     String cond = 'Đã qua sử dụng',
     int durationHours = 24,
     int photos = 2,
+    List<PickedImage> images = const [],
   }) async {
     final ok = await _write(
       () async {
@@ -287,6 +289,7 @@ class RemoteAppStore extends AppStore {
           condition: cond,
           description: desc,
           photos: photos,
+          images: images,
           progress: _draft,
         );
       },
@@ -297,7 +300,8 @@ class RemoteAppStore extends AppStore {
       // Tin đã gửi xong: lần tạo tiếp theo là tin mới.
       _draft
         ..id = null
-        ..photosAdded = false;
+        ..photosAdded = false
+        ..uploadedUrls = null;
     }
     return ok;
   }
@@ -321,8 +325,13 @@ class RemoteAppStore extends AppStore {
   );
 
   @override
-  Future<bool> sellerSubmitMoreInfo(String listingId, {int extraPhotos = 1}) =>
-      _write(() => _listings.resubmit(listingId, extraPhotos: extraPhotos));
+  Future<bool> sellerSubmitMoreInfo(
+    String listingId, {
+    int extraPhotos = 1,
+    List<PickedImage> images = const [],
+  }) => _write(
+    () => _listings.resubmit(listingId, extraPhotos: extraPhotos, images: images),
+  );
 
   @override
   Future<void> sellerMarkShipped(String listingId) async {

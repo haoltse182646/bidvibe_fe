@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:bidvibe/core/api_client.dart';
+import 'package:bidvibe/core/picked_image.dart';
 import 'package:bidvibe/features/disputes/dispute_repository.dart';
 import 'package:bidvibe/features/listings/listing_repository.dart';
 
@@ -84,6 +86,43 @@ void main() {
     expect(seen, ['POST /api/listings', 'POST /api/listings/77/photos', 'POST /api/listings/77/submit']);
     await expectLater(repo.shipToWarehouse('x'), throwsA(isA<ApiException>()));
     expect(seen.length, 3);
+  });
+
+  test('tạo tin có ảnh chọn từ máy: tải lên Storage trước, gắn đúng URL thật, thử lại không tải lại', () async {
+    final seen = <String>[];
+    Map<String, dynamic>? photoBody;
+    var fail = true;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add('${r.method} ${r.url.path}${r.url.query.isEmpty ? '' : '?${r.url.query}'}');
+        if (r.url.path == '/api/uploads/images') {
+          expect(r.headers['content-type'], startsWith('multipart/form-data'));
+          return ok({'urls': ['https://cdn.test/a.jpg', 'https://cdn.test/b.png']});
+        }
+        if (r.url.path == '/api/listings/77/photos') {
+          if (fail) {
+            fail = false;
+            return http.Response(jsonEncode({'success': false, 'error': {'code': 'X', 'message': 'loi'}}), 500);
+          }
+          photoBody = jsonDecode(r.body) as Map<String, dynamic>;
+        }
+        return ok({'id': '77'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    final repo = ListingRepository(api);
+    final imgs = [
+      PickedImage(Uint8List.fromList([1, 2, 3]), 'a.jpg'),
+      PickedImage(Uint8List.fromList([4, 5, 6]), 'b.png'),
+    ];
+    final progress = DraftProgress();
+    await expectLater(
+      repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: imgs, progress: progress),
+      throwsA(isA<ApiException>()),
+    );
+    await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: imgs, progress: progress);
+    expect(photoBody, {'urls': ['https://cdn.test/a.jpg', 'https://cdn.test/b.png']});
+    expect(seen.where((s) => s.startsWith('POST /api/uploads/images')).toList(), ['POST /api/uploads/images?purpose=listing']);
   });
 
   test('gợi ý giá: đọc giá, khoảng và giải thích từ BE; giá không hợp lệ bị từ chối', () async {
