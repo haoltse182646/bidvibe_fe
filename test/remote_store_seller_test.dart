@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -55,6 +56,7 @@ void main() {
   test('gửi tin lỗi giữa chừng rồi thử lại: dùng lại bản nháp cũ, không tạo thêm', () async {
     final calls = <String>[];
     var failPhotos = true;
+    var uploads = 0;
     final store = sellerStore((r) async {
       calls.add('${r.method} ${r.url.path}');
       switch ('${r.method} ${r.url.path}') {
@@ -62,6 +64,9 @@ void main() {
           return ok({'id': '77'}, 201);
         case 'PATCH /api/listings/77':
           return ok({});
+        case 'POST /api/uploads/images':
+          uploads++;
+          return ok({'urls': ['https://cdn.test/$uploads.png']}, 201);
         case 'POST /api/listings/77/photos':
           if (failPhotos) return fail('SERVER_ERROR', 'Lỗi máy chủ', 500);
           return ok({});
@@ -76,15 +81,17 @@ void main() {
     });
     addTearDown(store.dispose);
 
-    expect(await store.createListing(title: 'A', cat: 'shoes', start: 1000000), isFalse);
+    final images = [PickedImage(Uint8List(3), 'a.png')];
+    expect(await store.createListing(title: 'A', cat: 'shoes', start: 1000000, images: images), isFalse);
     failPhotos = false;
-    expect(await store.createListing(title: 'A (sửa)', cat: 'shoes', start: 1100000), isTrue);
+    expect(await store.createListing(title: 'A (sửa)', cat: 'shoes', start: 1100000, images: images), isTrue);
+    expect(uploads, 1, reason: 'cùng bộ ảnh: không tải lên lần hai');
     expect(calls.where((c) => c == 'POST /api/listings').length, 1, reason: 'không tạo bản nháp thứ hai');
     expect(calls, contains('PATCH /api/listings/77'), reason: 'đồng bộ nội dung mới nhất vào bản nháp');
     expect(calls.where((c) => c == 'POST /api/listings/77/submit').length, 1);
 
     // Tin đã gửi xong: lần tạo tiếp theo là tin mới.
-    await store.createListing(title: 'B', cat: 'shoes', start: 1000000);
+    await store.createListing(title: 'B', cat: 'shoes', start: 1000000, images: [PickedImage(Uint8List(3), 'b.png')]);
     expect(calls.where((c) => c == 'POST /api/listings').length, 2);
   });
 
@@ -408,7 +415,6 @@ class _CreateStore extends AppStore {
     String desc = '',
     String cond = 'Đã qua sử dụng',
     int durationHours = 24,
-    int photos = 2,
     List<PickedImage> images = const [],
   }) {
     creates++;

@@ -59,8 +59,8 @@ class SellerCreateScreen extends StatefulWidget {
 enum _AiState { idle, loading, done }
 
 class _SellerCreateScreenState extends State<SellerCreateScreen> {
-  final titleCtrl = TextEditingController(text: 'Giày da thủ công, size 41');
-  final descCtrl = TextEditingController(text: 'Da bò thật, đế khâu tay, đi được vài lần. Kèm hộp và túi vải.');
+  final titleCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
   final startCtrl = TextEditingController();
   String cat = 'shoes';
   String cond = 'Như mới';
@@ -192,7 +192,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           const SizedBox(height: 18),
           const Text('Mô tả', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          TextField(controller: descCtrl, maxLines: 3, decoration: _dec(null)),
+          TextField(controller: descCtrl, maxLines: 3, decoration: _dec('Chất liệu, tình trạng, phụ kiện đi kèm…')),
 
           const SizedBox(height: 18),
           Container(

@@ -506,10 +506,8 @@ class AppStore extends ChangeNotifier {
     String desc = '',
     String cond = 'Đã qua sử dụng',
     int durationHours = 24,
-    int photos = 2,
     List<PickedImage> images = const [],
   }) {
-    if (images.isNotEmpty) photos = images.length;
     final now = DateTime.now();
     final id = 'L${now.microsecondsSinceEpoch}';
     final l = SellerListing(id: id, title: title, cat: cat, seller: myShop, status: 'appraisal', price: start, start: start, desc: desc, cond: cond, durationHours: durationHours);
@@ -523,7 +521,7 @@ class AppStore extends ChangeNotifier {
         seller: myShop,
         ago: 'vừa xong',
         start: start,
-        photos: photos,
+        photos: images.length,
         desc: desc.isEmpty ? 'Người bán chưa nhập mô tả.' : desc,
         cond: cond,
         sellerRating: '4,8',
@@ -571,8 +569,7 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Người bán bổ sung ảnh/giấy tờ theo yêu cầu của thẩm định viên.
-  FutureOr<bool> sellerSubmitMoreInfo(String listingId, {int extraPhotos = 1, List<PickedImage> images = const []}) {
-    if (images.isNotEmpty) extraPhotos = images.length;
+  FutureOr<bool> sellerSubmitMoreInfo(String listingId, {List<PickedImage> images = const []}) {
     final l = _listing(listingId);
     final it = _appraisalOfListing(listingId);
     if (l == null) return false;
@@ -582,7 +579,7 @@ class AppStore extends ChangeNotifier {
     if (it != null) {
       it.status = 'pending';
       it.requests = [];
-      it.photos += extraPhotos;
+      it.photos += images.length;
     }
     _log('auction', 'Bổ sung hồ sơ theo yêu cầu thẩm định', actor: l.seller, ref: l.title);
     notifyListeners();    return true;

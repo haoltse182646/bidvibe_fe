@@ -44,7 +44,17 @@ class SellerData {
 class DraftProgress {
   String? id;
   bool photosAdded = false;
-  List<String>? uploadedUrls; // ảnh đã lên Storage nhưng chưa gắn vào tin
+  // Ảnh đã lên Storage nhưng chưa gắn vào tin, kèm bộ ảnh đã chọn lúc tải lên
+  // để đổi ảnh giữa hai lần gửi thì tải lại thay vì dùng nhầm URL cũ.
+  List<PickedImage>? uploadedFrom;
+  List<String>? uploadedUrls;
+
+  void reset() {
+    id = null;
+    photosAdded = false;
+    uploadedFrom = null;
+    uploadedUrls = null;
+  }
 }
 
 class ListingRepository {
@@ -82,11 +92,25 @@ class ListingRepository {
     return urls.cast<String>();
   }
 
-  /// Ảnh mẫu, chỉ dùng khi không có ảnh thật (ví dụ test).
-  static List<String> sampleUrls(String seed, int n) => [
-    for (var i = 0; i < (n < 1 ? 1 : n); i++)
-      'https://picsum.photos/seed/bv$seed-$i/800/600',
-  ];
+  /// Tải ảnh lên, dùng lại kết quả của lần trước nếu vẫn đúng bộ ảnh đó.
+  Future<List<String>> _uploadOnce(
+    DraftProgress progress,
+    List<PickedImage> images,
+  ) async {
+    final from = progress.uploadedFrom;
+    final urls = progress.uploadedUrls;
+    if (from != null &&
+        urls != null &&
+        from.length == images.length &&
+        [for (var i = 0; i < images.length; i++) identical(from[i], images[i])]
+            .every((same) => same)) {
+      return urls;
+    }
+    final uploaded = await uploadImages(images);
+    progress.uploadedFrom = List.of(images);
+    progress.uploadedUrls = uploaded;
+    return uploaded;
+  }
 
   /// Tạo tin → thêm ảnh → gửi thẩm định. Mỗi bước xong được ghi vào [progress]
   /// nên khi một bước lỗi và người bán bấm gửi lại, ta làm tiếp tin nháp cũ
@@ -98,10 +122,15 @@ class ListingRepository {
     required int durationHours,
     required String condition,
     String description = '',
-    int photos = 2,
-    List<PickedImage> images = const [],
+    required List<PickedImage> images,
     required DraftProgress progress,
   }) async {
+    if (images.isEmpty) {
+      throw const ApiException(
+        'VALIDATION_ERROR',
+        'Cần ít nhất một ảnh sản phẩm.',
+      );
+    }
     final fields = {
       'title': title,
       'categoryCode': category,
@@ -124,9 +153,7 @@ class ListingRepository {
       await update(id, fields); // lần gửi lại: đồng bộ nội dung mới nhất
     }
     if (!progress.photosAdded) {
-      final urls = images.isEmpty
-          ? sampleUrls(id, photos)
-          : (progress.uploadedUrls ??= await uploadImages(images));
+      final urls = await _uploadOnce(progress, images);
       await api.request(
         '/api/listings/$id/photos',
         method: 'POST',
@@ -145,23 +172,14 @@ class ListingRepository {
 
   Future<void> resubmit(
     String id, {
-    int extraPhotos = 0,
     List<PickedImage> images = const [],
   }) async {
     checkId(id);
-    final urls = images.isNotEmpty
-        ? await uploadImages(images)
-        : (extraPhotos > 0
-              ? sampleUrls(
-                  '$id-more${DateTime.now().millisecondsSinceEpoch}',
-                  extraPhotos,
-                )
-              : <String>[]);
-    if (urls.isNotEmpty) {
+    if (images.isNotEmpty) {
       await api.request(
         '/api/listings/$id/photos',
         method: 'POST',
-        body: {'urls': urls},
+        body: {'urls': await uploadImages(images)},
       );
     }
     await api.request('/api/listings/$id/resubmit', method: 'POST');

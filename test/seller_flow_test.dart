@@ -76,16 +76,19 @@ void main() {
     final api = ApiClient(
       client: MockClient((r) async {
         seen.add('${r.method} ${r.url.path}');
+        if (r.url.path == '/api/uploads/images') {
+          return ok({'urls': ['https://cdn.test/a.png']});
+        }
         return ok({'id': '77'});
       }),
     )..token = 't';
     addTearDown(api.close);
     final repo = ListingRepository(api);
-    final id = await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', photos: 2, progress: DraftProgress());
+    final id = await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: [PickedImage(Uint8List(3), 'a.png')], progress: DraftProgress());
     expect(id, '77');
-    expect(seen, ['POST /api/listings', 'POST /api/listings/77/photos', 'POST /api/listings/77/submit']);
+    expect(seen, ['POST /api/listings', 'POST /api/uploads/images', 'POST /api/listings/77/photos', 'POST /api/listings/77/submit']);
     await expectLater(repo.shipToWarehouse('x'), throwsA(isA<ApiException>()));
-    expect(seen.length, 3);
+    expect(seen.length, 4);
   });
 
   test('tạo tin có ảnh chọn từ máy: tải lên Storage trước, gắn đúng URL thật, thử lại không tải lại', () async {
@@ -123,6 +126,54 @@ void main() {
     await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: imgs, progress: progress);
     expect(photoBody, {'urls': ['https://cdn.test/a.jpg', 'https://cdn.test/b.png']});
     expect(seen.where((s) => s.startsWith('POST /api/uploads/images')).toList(), ['POST /api/uploads/images?purpose=listing']);
+  });
+
+  test('tạo tin không có ảnh: báo lỗi ngay, không tạo bản nháp', () async {
+    final seen = <String>[];
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add(r.url.path);
+        return ok({'id': '77'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    await expectLater(
+      ListingRepository(api).createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: const [], progress: DraftProgress()),
+      throwsA(isA<ApiException>()),
+    );
+    expect(seen, isEmpty);
+  });
+
+  test('đổi ảnh giữa hai lần gửi: tải lại bộ ảnh mới, không dùng URL của bộ cũ', () async {
+    final photoBodies = <Map<String, dynamic>>[];
+    var uploads = 0;
+    var fail = true;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        if (r.url.path == '/api/uploads/images') {
+          uploads++;
+          return ok({'urls': ['https://cdn.test/$uploads.png']});
+        }
+        if (r.url.path == '/api/listings/77/photos') {
+          if (fail) {
+            fail = false;
+            return http.Response(jsonEncode({'success': false, 'error': {'code': 'X', 'message': 'loi'}}), 500);
+          }
+          photoBodies.add(jsonDecode(r.body) as Map<String, dynamic>);
+        }
+        return ok({'id': '77'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    final repo = ListingRepository(api);
+    final progress = DraftProgress();
+    await expectLater(
+      repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: [PickedImage(Uint8List(3), 'old.png')], progress: progress),
+      throwsA(isA<ApiException>()),
+    );
+    await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: [PickedImage(Uint8List(3), 'new.png')], progress: progress);
+    expect(uploads, 2);
+    expect(photoBodies.single, {'urls': ['https://cdn.test/2.png']});
   });
 
   test('gợi ý giá: đọc giá, khoảng và giải thích từ BE; giá không hợp lệ bị từ chối', () async {

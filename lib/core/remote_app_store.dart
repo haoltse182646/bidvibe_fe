@@ -276,7 +276,6 @@ class RemoteAppStore extends AppStore {
     String desc = '',
     String cond = 'Đã qua sử dụng',
     int durationHours = 24,
-    int photos = 2,
     List<PickedImage> images = const [],
   }) async {
     final ok = await _write(
@@ -288,7 +287,6 @@ class RemoteAppStore extends AppStore {
           durationHours: durationHours,
           condition: cond,
           description: desc,
-          photos: photos,
           images: images,
           progress: _draft,
         );
@@ -298,10 +296,7 @@ class RemoteAppStore extends AppStore {
     );
     if (ok) {
       // Tin đã gửi xong: lần tạo tiếp theo là tin mới.
-      _draft
-        ..id = null
-        ..photosAdded = false
-        ..uploadedUrls = null;
+      _draft.reset();
     }
     return ok;
   }
@@ -327,11 +322,8 @@ class RemoteAppStore extends AppStore {
   @override
   Future<bool> sellerSubmitMoreInfo(
     String listingId, {
-    int extraPhotos = 1,
     List<PickedImage> images = const [],
-  }) => _write(
-    () => _listings.resubmit(listingId, extraPhotos: extraPhotos, images: images),
-  );
+  }) => _write(() => _listings.resubmit(listingId, images: images));
 
   @override
   Future<void> sellerMarkShipped(String listingId) async {

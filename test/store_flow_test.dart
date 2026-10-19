@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:bidvibe/core/picked_image.dart';
 import 'package:bidvibe/models.dart';
 import 'package:bidvibe/store.dart';
 
@@ -119,7 +122,7 @@ void main() {
 
     test('một món hàng mới đi trọn luồng: tạo → duyệt → đặt giá → thắng → thanh toán → kho → giải ngân', () async {
       s.login('long@sneakersg.vn', '123456');
-      s.createListing(title: 'Giày demo main flow', cat: 'shoes', start: 1000000, desc: 'mô tả', cond: 'Như mới', durationHours: 24, photos: 3);
+      s.createListing(title: 'Giày demo main flow', cat: 'shoes', start: 1000000, desc: 'mô tả', cond: 'Như mới', durationHours: 24, images: _photos(3));
       final l = s.myListings.first;
 
       s.login('khoa.tran@bidvibe.vn', '123456');
@@ -158,14 +161,14 @@ void main() {
 
     test('Seller tạo phiếu → Thẩm định duyệt → phiên công khai cho Bidder', () {
       s.login('long@sneakersg.vn', '123456');
-      s.createListing(title: 'Giày thử nghiệm', cat: 'shoes', start: 1000000, desc: 'mô tả', cond: 'Như mới', durationHours: 72, photos: 3);
+      s.createListing(title: 'Giày thử nghiệm', cat: 'shoes', start: 1000000, desc: 'mô tả', cond: 'Như mới', durationHours: 72, images: _photos(3));
       final l = s.myListings.first;
       expect(l.status, 'appraisal');
       final item = s.appraisalQueue.firstWhere((i) => i.listingId == l.id);
       s.requestMoreInfo(item.id, ['photos']);
       expect(l.status, 'needinfo');
       expect(s.updateListing(l.id, title: 'Giày thử nghiệm 2', desc: 'x', start: 1200000, durationHours: 24, cond: 'Mới'), isTrue);
-      s.sellerSubmitMoreInfo(l.id);
+      s.sellerSubmitMoreInfo(l.id, images: _photos(1));
       expect(l.status, 'appraisal');
       final n = s.auctions.length;
       s.approveAppraisal(item.id);
@@ -269,3 +272,5 @@ void main() {
     });
   });
 }
+
+List<PickedImage> _photos(int n) => [for (var i = 0; i < n; i++) PickedImage(Uint8List(3), 'p$i.png')];
