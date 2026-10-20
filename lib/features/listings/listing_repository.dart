@@ -1,4 +1,5 @@
 import '../../core/api_client.dart';
+import '../../core/image_upload.dart';
 import '../../core/picked_image.dart';
 import '../../models.dart';
 
@@ -68,32 +69,11 @@ class ListingRepository {
     }
   }
 
-  static const maxImageBytes = 5 * 1024 * 1024;
-
   /// Tải ảnh người bán chọn lên Storage, trả URL công khai theo đúng thứ tự.
   Future<List<String>> uploadImages(
     List<PickedImage> images, {
     String purpose = 'listing',
-  }) async {
-    for (final img in images) {
-      if (img.bytes.length > maxImageBytes) {
-        throw const ApiException('FILE_TOO_LARGE', 'Mỗi ảnh tối đa 5 MB.');
-      }
-    }
-    final result = await api.uploadImages([
-      for (final img in images) (bytes: img.bytes, filename: img.name),
-    ], purpose: purpose);
-    final urls = result['urls'];
-    if (urls is! List ||
-        urls.length != images.length ||
-        urls.any((u) => u is! String)) {
-      throw const ApiException(
-        'INVALID_RESPONSE',
-        'Máy chủ chưa trả đường dẫn ảnh hợp lệ.',
-      );
-    }
-    return urls.cast<String>();
-  }
+  }) => uploadPickedImages(api, images, purpose: purpose);
 
   /// Tải ảnh lên, dùng lại kết quả của lần trước nếu vẫn đúng bộ ảnh đó.
   Future<List<String>> _uploadOnce(

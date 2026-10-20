@@ -1,4 +1,6 @@
 import '../../core/api_client.dart';
+import '../../core/image_upload.dart';
+import '../../core/picked_image.dart';
 import '../profile/profile_repository.dart';
 
 int _int(dynamic v) => v is num ? v.toInt() : 0;
@@ -99,6 +101,29 @@ class DisputeRepository {
   const DisputeRepository(this.api);
 
   static bool validId(String id) => RegExp(r'^[1-9][0-9]{0,18}$').hasMatch(id);
+
+  /// Giới hạn ảnh bằng chứng của BE (mỗi lần gửi / tổng cho một tranh chấp).
+  static const maxPhotosPerRequest = 6;
+  static const maxPhotosPerDispute = 12;
+
+  /// Bổ sung ảnh bằng chứng khi tranh chấp còn mở: tải ảnh lên trước, rồi gắn URL vào tranh chấp.
+  Future<void> addPhotos(String disputeId, List<PickedImage> images) async {
+    if (!validId(disputeId)) {
+      throw const ApiException('VALIDATION_ERROR', 'Mã tranh chấp không hợp lệ.');
+    }
+    if (images.isEmpty || images.length > maxPhotosPerRequest) {
+      throw const ApiException(
+        'VALIDATION_ERROR',
+        'Mỗi lần gửi từ 1 đến $maxPhotosPerRequest ảnh.',
+      );
+    }
+    final urls = await uploadPickedImages(api, images, purpose: 'dispute');
+    await api.request(
+      '/api/disputes/$disputeId/photos',
+      method: 'POST',
+      body: {'photoUrls': urls},
+    );
+  }
 
   Future<List<UserDispute>> mine() async {
     final rows = (await api.request('/api/disputes/mine'))['disputes'];

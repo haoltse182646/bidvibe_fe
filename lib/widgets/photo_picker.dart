@@ -4,6 +4,23 @@ import 'package:image_picker/image_picker.dart';
 import '../core/picked_image.dart';
 import '../theme.dart';
 
+/// Mở thư viện ảnh và đọc các ảnh được chọn (tối đa [limit]). [pick] để test.
+Future<List<PickedImage>> pickPhotos(
+  int limit, {
+  Future<List<XFile>> Function(int limit)? pick,
+}) async {
+  final files = await (pick?.call(limit) ??
+      ImagePicker().pickMultiImage(
+        limit: limit < 2 ? null : limit,
+        maxWidth: 1600,
+        imageQuality: 85,
+      ));
+  return [
+    for (final f in files.take(limit))
+      PickedImage(await f.readAsBytes(), f.name.isEmpty ? 'photo' : f.name),
+  ];
+}
+
 /// Hàng ô chọn ảnh từ thư viện máy: bấm ô trống để thêm, bấm ảnh để bỏ.
 class PhotoPicker extends StatelessWidget {
   final List<PickedImage> images;
@@ -23,17 +40,8 @@ class PhotoPicker extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final room = max - images.length;
     try {
-      final files = await (pick?.call(room) ??
-          ImagePicker().pickMultiImage(
-            limit: room < 2 ? null : room,
-            maxWidth: 1600,
-            imageQuality: 85,
-          ));
-      if (files.isEmpty) return;
-      final added = <PickedImage>[
-        for (final f in files.take(room))
-          PickedImage(await f.readAsBytes(), f.name.isEmpty ? 'photo' : f.name),
-      ];
+      final added = await pickPhotos(room, pick: pick);
+      if (added.isEmpty) return;
       onChanged([...images, ...added]);
     } catch (_) {
       messenger.showSnackBar(const SnackBar(
