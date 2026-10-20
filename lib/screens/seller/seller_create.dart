@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:image_picker/image_picker.dart';
+
+import '../../core/picked_image.dart';
 import '../../models.dart';
 import '../../store.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/photo_picker.dart';
 
 class _AiSuggestion {
   final int price;
@@ -45,7 +49,8 @@ const Map<String, _AiSuggestion> _aiByCat = {
 
 class SellerCreateScreen extends StatefulWidget {
   final VoidCallback onDone;
-  const SellerCreateScreen({super.key, required this.onDone});
+  final Future<List<XFile>> Function(int limit)? pickImages; // chèn khi test
+  const SellerCreateScreen({super.key, required this.onDone, this.pickImages});
 
   @override
   State<SellerCreateScreen> createState() => _SellerCreateScreenState();
@@ -54,13 +59,13 @@ class SellerCreateScreen extends StatefulWidget {
 enum _AiState { idle, loading, done }
 
 class _SellerCreateScreenState extends State<SellerCreateScreen> {
-  final titleCtrl = TextEditingController(text: 'Giày da thủ công, size 41');
-  final descCtrl = TextEditingController(text: 'Da bò thật, đế khâu tay, đi được vài lần. Kèm hộp và túi vải.');
+  final titleCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
   final startCtrl = TextEditingController();
   String cat = 'shoes';
   String cond = 'Như mới';
   String dur = '24 giờ';
-  int photoCount = 2;
+  List<PickedImage> images = [];
   _AiState aiState = _AiState.idle;
   bool submitted = false;
   bool _submitting = false; // chặn bấm đúp: gửi tin gồm nhiều request nối tiếp
@@ -102,7 +107,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
         ? _AiSuggestion(price: live.price, range: '${store.money(live.low)} – ${store.money(live.high)}', reasons: [live.explanation])
         : _aiByCat[cat]!;
     final start = int.tryParse(startCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-    final canSubmit = titleCtrl.text.trim().isNotEmpty && start != null && start > 0;
+    final canSubmit = titleCtrl.text.trim().isNotEmpty && start != null && start > 0 && images.isNotEmpty;
 
     if (submitted) {
       return _DoneView(
@@ -115,6 +120,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
             titleCtrl.text = '';
             descCtrl.text = '';
             startCtrl.text = '';
+            images = [];
             aiState = _AiState.idle;
           });
         },
@@ -124,6 +130,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
             titleCtrl.text = '';
             descCtrl.text = '';
             startCtrl.text = '';
+            images = [];
             aiState = _AiState.idle;
           });
         },
@@ -139,36 +146,9 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           const Text('Tạo phiên đấu giá', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
           const SizedBox(height: 16),
 
-          Text('Ảnh sản phẩm ($photoCount/4)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text('Ảnh sản phẩm (${images.length}/4)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Row(
-            children: List.generate(4, (i) {
-              final filled = i < photoCount;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: i == 3 ? 0 : 8),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Material(
-                      color: filled ? categoryTileColor(cat) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => setState(() => photoCount = filled ? photoCount - 1 : photoCount + 1),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: filled ? null : Border.all(color: const Color(0xFF9AA0A9), width: 1.5, style: BorderStyle.solid),
-                          ),
-                          child: Icon(filled ? Icons.image_outlined : Icons.add, color: filled ? AppColors.neutralFg : AppColors.muted),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
+          PhotoPicker(images: images, pick: widget.pickImages, onChanged: (v) => setState(() => images = v)),
           const SizedBox(height: 6),
           const Text('Chụp rõ mặt trước, mặt sau, chi tiết và các vết xước (nếu có).', style: TextStyle(fontSize: 12, color: AppColors.muted)),
 
@@ -212,7 +192,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           const SizedBox(height: 18),
           const Text('Mô tả', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          TextField(controller: descCtrl, maxLines: 3, decoration: _dec(null)),
+          TextField(controller: descCtrl, maxLines: 3, decoration: _dec('Chất liệu, tình trạng, phụ kiện đi kèm…')),
 
           const SizedBox(height: 18),
           Container(
@@ -310,7 +290,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
                       desc: descCtrl.text.trim(),
                       cond: cond,
                       durationHours: dur == '7 ngày' ? 168 : (dur == '3 ngày' ? 72 : 24),
-                      photos: photoCount,
+                      images: images,
                     );
                     if (!mounted) return;
                     setState(() {

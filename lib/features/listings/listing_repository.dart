@@ -1,4 +1,6 @@
 import '../../core/api_client.dart';
+import '../../core/image_upload.dart';
+import '../../core/picked_image.dart';
 import '../../models.dart';
 
 String _s(dynamic v, [String d = '']) => v == null ? d : '$v';
@@ -43,6 +45,17 @@ class SellerData {
 class DraftProgress {
   String? id;
   bool photosAdded = false;
+  // Ảnh đã lên Storage nhưng chưa gắn vào tin, kèm bộ ảnh đã chọn lúc tải lên
+  // để đổi ảnh giữa hai lần gửi thì tải lại thay vì dùng nhầm URL cũ.
+  List<PickedImage>? uploadedFrom;
+  List<String>? uploadedUrls;
+
+  void reset() {
+    id = null;
+    photosAdded = false;
+    uploadedFrom = null;
+    uploadedUrls = null;
+  }
 }
 
 class ListingRepository {
@@ -56,11 +69,31 @@ class ListingRepository {
     }
   }
 
-  /// Ảnh mẫu: tải ảnh thật lên cần Storage, nhóm tạm dùng URL mẫu.
-  static List<String> sampleUrls(String seed, int n) => [
-    for (var i = 0; i < (n < 1 ? 1 : n); i++)
-      'https://picsum.photos/seed/bv$seed-$i/800/600',
-  ];
+  /// Tải ảnh người bán chọn lên Storage, trả URL công khai theo đúng thứ tự.
+  Future<List<String>> uploadImages(
+    List<PickedImage> images, {
+    String purpose = 'listing',
+  }) => uploadPickedImages(api, images, purpose: purpose);
+
+  /// Tải ảnh lên, dùng lại kết quả của lần trước nếu vẫn đúng bộ ảnh đó.
+  Future<List<String>> _uploadOnce(
+    DraftProgress progress,
+    List<PickedImage> images,
+  ) async {
+    final from = progress.uploadedFrom;
+    final urls = progress.uploadedUrls;
+    if (from != null &&
+        urls != null &&
+        from.length == images.length &&
+        [for (var i = 0; i < images.length; i++) identical(from[i], images[i])]
+            .every((same) => same)) {
+      return urls;
+    }
+    final uploaded = await uploadImages(images);
+    progress.uploadedFrom = List.of(images);
+    progress.uploadedUrls = uploaded;
+    return uploaded;
+  }
 
   /// Tạo tin → thêm ảnh → gửi thẩm định. Mỗi bước xong được ghi vào [progress]
   /// nên khi một bước lỗi và người bán bấm gửi lại, ta làm tiếp tin nháp cũ
@@ -72,9 +105,15 @@ class ListingRepository {
     required int durationHours,
     required String condition,
     String description = '',
-    int photos = 2,
+    required List<PickedImage> images,
     required DraftProgress progress,
   }) async {
+    if (images.isEmpty) {
+      throw const ApiException(
+        'VALIDATION_ERROR',
+        'Cần ít nhất một ảnh sản phẩm.',
+      );
+    }
     final fields = {
       'title': title,
       'categoryCode': category,
@@ -97,10 +136,11 @@ class ListingRepository {
       await update(id, fields); // lần gửi lại: đồng bộ nội dung mới nhất
     }
     if (!progress.photosAdded) {
+      final urls = await _uploadOnce(progress, images);
       await api.request(
         '/api/listings/$id/photos',
         method: 'POST',
-        body: {'urls': sampleUrls(id, photos)},
+        body: {'urls': urls},
       );
       progress.photosAdded = true;
     }
@@ -113,18 +153,16 @@ class ListingRepository {
     await api.request('/api/listings/$id', method: 'PATCH', body: fields);
   }
 
-  Future<void> resubmit(String id, {int extraPhotos = 0}) async {
+  Future<void> resubmit(
+    String id, {
+    List<PickedImage> images = const [],
+  }) async {
     checkId(id);
-    if (extraPhotos > 0) {
+    if (images.isNotEmpty) {
       await api.request(
         '/api/listings/$id/photos',
         method: 'POST',
-        body: {
-          'urls': sampleUrls(
-            '$id-more${DateTime.now().millisecondsSinceEpoch}',
-            extraPhotos,
-          ),
-        },
+        body: {'urls': await uploadImages(images)},
       );
     }
     await api.request('/api/listings/$id/resubmit', method: 'POST');
@@ -159,12 +197,22 @@ class ListingRepository {
     required String orderId,
     required String title,
     required String reason,
+    List<PickedImage> images = const [],
   }) async {
     checkId(orderId);
+    // Ảnh bằng chứng tải lên trước; mở tranh chấp xong mới thật sự giữ ký quỹ.
+    final photoUrls = images.isEmpty
+        ? const <String>[]
+        : await uploadImages(images, purpose: 'dispute');
     await api.request(
       '/api/disputes',
       method: 'POST',
-      body: {'orderId': orderId, 'title': title, 'reason': reason},
+      body: {
+        'orderId': orderId,
+        'title': title,
+        'reason': reason,
+        if (photoUrls.isNotEmpty) 'photoUrls': photoUrls,
+      },
     );
   }
 

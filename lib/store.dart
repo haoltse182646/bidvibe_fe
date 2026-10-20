@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'core/picked_image.dart';
 import 'models.dart';
 
 /// Store trung tâm, giữ toàn bộ dữ liệu giả lập của app và logic nghiệp
@@ -464,6 +465,7 @@ class AppStore extends ChangeNotifier {
     required String title,
     required String reason,
     String detail = '',
+    List<PickedImage> images = const [],
   }) {
     final now = DateTime.now();
     final a = _auction(auctionId);
@@ -505,7 +507,7 @@ class AppStore extends ChangeNotifier {
     String desc = '',
     String cond = 'Đã qua sử dụng',
     int durationHours = 24,
-    int photos = 2,
+    List<PickedImage> images = const [],
   }) {
     final now = DateTime.now();
     final id = 'L${now.microsecondsSinceEpoch}';
@@ -520,7 +522,7 @@ class AppStore extends ChangeNotifier {
         seller: myShop,
         ago: 'vừa xong',
         start: start,
-        photos: photos,
+        photos: images.length,
         desc: desc.isEmpty ? 'Người bán chưa nhập mô tả.' : desc,
         cond: cond,
         sellerRating: '4,8',
@@ -568,7 +570,7 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Người bán bổ sung ảnh/giấy tờ theo yêu cầu của thẩm định viên.
-  FutureOr<bool> sellerSubmitMoreInfo(String listingId, {int extraPhotos = 1}) {
+  FutureOr<bool> sellerSubmitMoreInfo(String listingId, {List<PickedImage> images = const []}) {
     final l = _listing(listingId);
     final it = _appraisalOfListing(listingId);
     if (l == null) return false;
@@ -578,7 +580,7 @@ class AppStore extends ChangeNotifier {
     if (it != null) {
       it.status = 'pending';
       it.requests = [];
-      it.photos += extraPhotos;
+      it.photos += images.length;
     }
     _log('auction', 'Bổ sung hồ sơ theo yêu cầu thẩm định', actor: l.seller, ref: l.title);
     notifyListeners();    return true;
