@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/api_client.dart';
 import '../../core/remote_app_store.dart';
 import '../../features/ops/ops_repository.dart';
+import '../../features/profile/profile_repository.dart';
 import '../../store.dart';
 import '../../theme.dart';
 
@@ -311,6 +312,61 @@ class AdminOpsDisputeDetailScreen extends StatefulWidget {
 class _AdminOpsDisputeDetailScreenState extends State<AdminOpsDisputeDetailScreen> {
   bool _saving = false;
 
+  Widget _evidencePhoto(Map<String, dynamic> photo) {
+    final url = photo['url'] as String;
+    final role = switch (photo['uploaderRole']) {
+      'bidder' => 'Người mua',
+      'seller' => 'Người bán',
+      'warehouse' => 'Kho',
+      _ => 'Ảnh',
+    };
+    Widget image({double? width, double? height}) => Image.network(
+      url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: width,
+        height: height,
+        color: AppColors.neutralBg,
+        alignment: Alignment.center,
+        child: const Icon(Icons.broken_image_outlined, color: AppColors.muted),
+      ),
+    );
+
+    return Semantics(
+      button: true,
+      label: 'Xem ảnh bằng chứng của $role',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (_) => Dialog(
+            child: InteractiveViewer(
+              child: Image.network(
+                url,
+                errorBuilder: (_, __, ___) => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Không tải được ảnh.'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: image(width: 96, height: 96),
+            ),
+            const SizedBox(height: 4),
+            Text(role, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _resolve(String resolution) async {
     final noteController = TextEditingController();
     final note = await showDialog<String>(
@@ -361,6 +417,15 @@ class _AdminOpsDisputeDetailScreenState extends State<AdminOpsDisputeDetailScree
     final timeline = dispute['timeline'] is List
         ? (dispute['timeline'] as List).whereType<Map>().toList()
         : const <Map>[];
+    final photos = dispute['photos'] is List
+        ? (dispute['photos'] as List)
+            .whereType<Map>()
+            .map((photo) => Map<String, dynamic>.from(photo))
+            .where((photo) =>
+                photo['url'] is String &&
+                ProfileRepository.validUrl(photo['url'] as String))
+            .toList()
+        : <Map<String, dynamic>>[];
     final open = dispute['status'] == 'open';
     return Scaffold(
       appBar: AppBar(title: const Text('Chi tiết tranh chấp')),
@@ -383,6 +448,32 @@ class _AdminOpsDisputeDetailScreenState extends State<AdminOpsDisputeDetailScree
           _InfoSection(title: 'Diễn biến', values: {
             for (var i = 0; i < timeline.length; i++) 'Mốc ${i + 1} · ${timeline[i]['at'] ?? '—'}': timeline[i]['note'] ?? '—',
           }),
+          if (photos.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ảnh bằng chứng (${photos.length})',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [for (final photo in photos) _evidencePhoto(photo)],
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (open) ...[
             const SizedBox(height: 18),
             FilledButton.icon(
