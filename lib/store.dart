@@ -465,6 +465,7 @@ class AppStore extends ChangeNotifier {
     required String title,
     required String reason,
     String detail = '',
+    List<PickedImage> images = const [],
   }) {
     final now = DateTime.now();
     final a = _auction(auctionId);

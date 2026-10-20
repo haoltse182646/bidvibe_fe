@@ -347,6 +347,7 @@ class RemoteAppStore extends AppStore {
     required String title,
     required String reason,
     String detail = '',
+    List<PickedImage> images = const [],
   }) async {
     try {
       String? orderId;
@@ -364,6 +365,7 @@ class RemoteAppStore extends AppStore {
         orderId: orderId,
         title: title,
         reason: detail.trim().isEmpty ? reason : '$reason — ${detail.trim()}',
+        images: images,
       );
       _say('Đã gửi tranh chấp', 'Ký quỹ được giữ lại. Admin sẽ phản hồi sớm.');
     } on ApiException catch (e) {

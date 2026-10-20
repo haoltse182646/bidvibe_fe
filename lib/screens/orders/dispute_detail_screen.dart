@@ -135,6 +135,58 @@ class _DisputeDetailScreenState extends State<DisputeDetailScreen>
         child: Padding(padding: const EdgeInsets.all(18), child: child),
       );
 
+  static const _roleLabels = {
+    'bidder': 'Người mua',
+    'seller': 'Người bán',
+    'warehouse': 'Kho',
+  };
+
+  Widget _photoThumb(DisputePhoto photo) {
+    final label = _roleLabels[photo.uploaderRole] ?? 'Ảnh';
+    return Semantics(
+      button: true,
+      label: 'Xem ảnh của $label',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (_) => Dialog(
+            child: InteractiveViewer(
+              child: Image.network(
+                photo.url,
+                errorBuilder: (_, __, ___) => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Không tải được ảnh.'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: Column(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              photo.url,
+              width: 88,
+              height: 88,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 88,
+                height: 88,
+                color: AppColors.neutralBg,
+                child: const Icon(Icons.broken_image_outlined,
+                    color: AppColors.muted),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = _dispute;
@@ -218,6 +270,18 @@ class _DisputeDetailScreenState extends State<DisputeDetailScreen>
                             ]),
                       ),
                   ])),
+              if (d.photos.isNotEmpty)
+                _card(Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Ảnh bằng chứng (${d.photos.length})',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      Wrap(spacing: 8, runSpacing: 8, children: [
+                        for (final photo in d.photos)
+                          _photoThumb(photo),
+                      ]),
+                    ])),
               FilledButton.icon(
                 onPressed: _loading || _error != null ? null : _openOrder,
                 icon: const Icon(Icons.receipt_long_outlined),

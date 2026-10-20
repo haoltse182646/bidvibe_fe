@@ -200,6 +200,79 @@ void main() {
     await expectLater(repo.suggestPrice(category: 'shoes', condition: 'x'), throwsA(isA<ApiException>()));
   });
 
+  test('mở tranh chấp có ảnh: tải lên purpose=dispute trước, rồi gửi photoUrls', () async {
+    final seen = <String>[];
+    Map<String, dynamic>? body;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add('${r.method} ${r.url.path}${r.url.query.isEmpty ? '' : '?${r.url.query}'}');
+        if (r.url.path == '/api/uploads/images') {
+          return ok({'urls': ['https://cdn.test/d1.png', 'https://cdn.test/d2.png']});
+        }
+        body = jsonDecode(r.body) as Map<String, dynamic>;
+        return ok({'id': '9'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    await ListingRepository(api).openDispute(
+      orderId: '11',
+      title: 't',
+      reason: 'r',
+      images: [PickedImage(Uint8List(3), 'a.png'), PickedImage(Uint8List(3), 'b.png')],
+    );
+    expect(seen, ['POST /api/uploads/images?purpose=dispute', 'POST /api/disputes']);
+    expect(body!['photoUrls'], ['https://cdn.test/d1.png', 'https://cdn.test/d2.png']);
+  });
+
+  test('mở tranh chấp không ảnh: không tải lên, không gửi photoUrls; ảnh lỗi thì không mở tranh chấp', () async {
+    final seen = <String>[];
+    Map<String, dynamic>? body;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add(r.url.path);
+        if (r.url.path == '/api/uploads/images') {
+          return http.Response(jsonEncode({'success': false, 'error': {'code': 'UPLOAD_FAILED', 'message': 'loi'}}), 502);
+        }
+        body = jsonDecode(r.body) as Map<String, dynamic>;
+        return ok({'id': '9'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    final repo = ListingRepository(api);
+    await repo.openDispute(orderId: '11', title: 't', reason: 'r');
+    expect(seen, ['/api/disputes']);
+    expect(body!.containsKey('photoUrls'), isFalse);
+    seen.clear();
+    await expectLater(
+      repo.openDispute(orderId: '11', title: 't', reason: 'r', images: [PickedImage(Uint8List(3), 'a.png')]),
+      throwsA(isA<ApiException>()),
+    );
+    expect(seen, ['/api/uploads/images'], reason: 'ảnh lỗi thì chưa mở tranh chấp, ký quỹ chưa bị giữ');
+  });
+
+  test('tranh chấp của tôi: đọc ảnh bằng chứng, bỏ ảnh có URL lạ, thiếu photos thì rỗng', () async {
+    final api = ApiClient(
+      client: MockClient((_) async => ok({
+        'disputes': [
+          {
+            'id': '5', 'orderId': '11', 'source': 'bidder', 'status': 'open',
+            'photos': [
+              {'id': '1', 'url': 'https://cdn.test/a.png', 'uploaderRole': 'bidder', 'createdAt': '2026-10-20T01:00:00Z'},
+              {'id': '2', 'url': 'javascript:alert(1)', 'uploaderRole': 'seller'},
+              {'id': '3', 'uploaderRole': 'warehouse'},
+            ],
+          },
+          {'id': '6', 'orderId': '12', 'source': 'seller', 'status': 'open'},
+        ],
+      })),
+    )..token = 't';
+    addTearDown(api.close);
+    final list = await DisputeRepository(api).mine();
+    expect(list.first.photos.map((p) => p.url), ['https://cdn.test/a.png']);
+    expect(list.first.photos.single.uploaderRole, 'bidder');
+    expect(list.last.photos, isEmpty);
+  });
+
   test('tranh chấp của tôi: đọc trạng thái, kết quả xử lý và mốc thời gian', () async {
     final api = ApiClient(
       client: MockClient((_) async => ok({

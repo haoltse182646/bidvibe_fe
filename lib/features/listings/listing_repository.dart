@@ -71,7 +71,10 @@ class ListingRepository {
   static const maxImageBytes = 5 * 1024 * 1024;
 
   /// Tải ảnh người bán chọn lên Storage, trả URL công khai theo đúng thứ tự.
-  Future<List<String>> uploadImages(List<PickedImage> images) async {
+  Future<List<String>> uploadImages(
+    List<PickedImage> images, {
+    String purpose = 'listing',
+  }) async {
     for (final img in images) {
       if (img.bytes.length > maxImageBytes) {
         throw const ApiException('FILE_TOO_LARGE', 'Mỗi ảnh tối đa 5 MB.');
@@ -79,7 +82,7 @@ class ListingRepository {
     }
     final result = await api.uploadImages([
       for (final img in images) (bytes: img.bytes, filename: img.name),
-    ], purpose: 'listing');
+    ], purpose: purpose);
     final urls = result['urls'];
     if (urls is! List ||
         urls.length != images.length ||
@@ -214,12 +217,22 @@ class ListingRepository {
     required String orderId,
     required String title,
     required String reason,
+    List<PickedImage> images = const [],
   }) async {
     checkId(orderId);
+    // Ảnh bằng chứng tải lên trước; mở tranh chấp xong mới thật sự giữ ký quỹ.
+    final photoUrls = images.isEmpty
+        ? const <String>[]
+        : await uploadImages(images, purpose: 'dispute');
     await api.request(
       '/api/disputes',
       method: 'POST',
-      body: {'orderId': orderId, 'title': title, 'reason': reason},
+      body: {
+        'orderId': orderId,
+        'title': title,
+        'reason': reason,
+        if (photoUrls.isNotEmpty) 'photoUrls': photoUrls,
+      },
     );
   }
 

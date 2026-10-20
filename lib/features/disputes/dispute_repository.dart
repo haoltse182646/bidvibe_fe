@@ -1,4 +1,5 @@
 import '../../core/api_client.dart';
+import '../profile/profile_repository.dart';
 
 int _int(dynamic v) => v is num ? v.toInt() : 0;
 
@@ -6,6 +7,13 @@ class DisputeStep {
   final String note;
   final DateTime? at;
   const DisputeStep(this.note, this.at);
+}
+
+/// Ảnh bằng chứng của tranh chấp; [uploaderRole] là bidder | seller | warehouse.
+class DisputePhoto {
+  final String id, url, uploaderRole;
+  final DateTime? createdAt;
+  const DisputePhoto(this.id, this.url, this.uploaderRole, this.createdAt);
 }
 
 /// Tranh chấp trên đơn của tôi (`GET /api/disputes/mine`).
@@ -17,6 +25,7 @@ class UserDispute {
   final int escrowAmount;
   final DateTime? createdAt;
   final List<DisputeStep> timeline;
+  final List<DisputePhoto> photos;
 
   const UserDispute({
     required this.id,
@@ -29,6 +38,7 @@ class UserDispute {
     required this.escrowAmount,
     required this.createdAt,
     required this.timeline,
+    this.photos = const [],
   });
 
   factory UserDispute.fromJson(Map<String, dynamic> j) {
@@ -51,6 +61,21 @@ class UserDispute {
               )
               .toList()
         : <DisputeStep>[];
+    final rawPhotos = j['photos'];
+    final photos = <DisputePhoto>[
+      if (rawPhotos is List)
+        for (final e in rawPhotos.whereType<Map>())
+          // Bỏ qua ảnh có URL lạ thay vì làm hỏng cả màn tranh chấp.
+          if (e['url'] is String && ProfileRepository.validUrl(e['url'] as String))
+            DisputePhoto(
+              '${e['id']}',
+              e['url'] as String,
+              '${e['uploaderRole'] ?? ''}',
+              e['createdAt'] is String
+                  ? DateTime.tryParse(e['createdAt'] as String)?.toLocal()
+                  : null,
+            ),
+    ];
     return UserDispute(
       id: id,
       orderId: orderId,
@@ -62,6 +87,7 @@ class UserDispute {
       escrowAmount: _int(j['escrowAmount']),
       createdAt: timeline.isEmpty ? null : timeline.first.at,
       timeline: timeline,
+      photos: photos,
     );
   }
 

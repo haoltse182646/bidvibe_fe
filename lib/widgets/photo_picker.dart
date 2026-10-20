@@ -32,7 +32,7 @@ class PhotoPicker extends StatelessWidget {
       if (files.isEmpty) return;
       final added = <PickedImage>[
         for (final f in files.take(room))
-          PickedImage(await f.readAsBytes(), f.name),
+          PickedImage(await f.readAsBytes(), f.name.isEmpty ? 'photo' : f.name),
       ];
       onChanged([...images, ...added]);
     } catch (_) {

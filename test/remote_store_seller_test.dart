@@ -233,6 +233,50 @@ void main() {
       await t.pump();
     }
 
+    testWidgets('tranh chấp: ảnh bằng chứng chọn từ máy được gửi kèm khi mở tranh chấp', (t) async {
+      final png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+      final gate = Completer<bool>();
+      final store = _DisputeStore(gate);
+      await pump(
+        t,
+        store,
+        Builder(
+          builder: (c) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(c).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => CustomerDisputeScreen(
+                    source: 'bidder',
+                    title: 'Hàng',
+                    auctionId: '50',
+                    pickImages: (_) async => [XFile.fromData(png, name: 'bang-chung.png')],
+                  ),
+                ),
+              ),
+              child: const Text('mở'),
+            ),
+          ),
+        ),
+      );
+      await t.tap(find.text('mở'));
+      await t.pumpAndSettle();
+      expect(find.text('Ảnh/bằng chứng (0/4)'), findsOneWidget);
+      await t.tap(find.byKey(const ValueKey('photo-slot-0')));
+      await t.pump();
+      await t.pump();
+      expect(find.text('Ảnh/bằng chứng (1/4)'), findsOneWidget);
+      await t.tap(find.text('Hàng không đúng mô tả'));
+      await t.pump();
+      await t.tap(find.text('Gửi tranh chấp'));
+      await t.pump();
+      expect(store.lastImages.length, 1);
+      expect(store.lastImages.single.bytes, png);
+      gate.complete(false);
+      await t.pumpAndSettle();
+      await t.pumpWidget(const SizedBox());
+      store.dispose();
+    });
+
     testWidgets('tranh chấp: bấm đúp chỉ gửi một lần; thất bại thì không đóng màn và giữ nội dung', (t) async {
       final gate = Completer<bool>();
       final store = _DisputeStore(gate);
@@ -388,6 +432,7 @@ class _AiStore extends AppStore {
 class _DisputeStore extends AppStore {
   Completer<bool> next;
   int calls = 0;
+  List<PickedImage> lastImages = const [];
   _DisputeStore(this.next);
   @override
   FutureOr<bool> raiseDispute({
@@ -397,8 +442,10 @@ class _DisputeStore extends AppStore {
     required String title,
     required String reason,
     String detail = '',
+    List<PickedImage> images = const [],
   }) {
     calls++;
+    lastImages = images;
     return next.future;
   }
 }
