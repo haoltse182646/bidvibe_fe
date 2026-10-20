@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/picked_image.dart';
 import '../../store.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/photo_picker.dart';
 
 /// Mở tranh chấp (Raise Dispute) — dùng chung cho Người mua và Người bán.
 /// Tranh chấp được đưa vào mục "Tranh chấp" của Admin, đồng thời khoản ký
@@ -13,7 +16,8 @@ class CustomerDisputeScreen extends StatefulWidget {
   final String title;
   final String? auctionId;
   final String? listingId;
-  const CustomerDisputeScreen({super.key, required this.source, required this.title, this.auctionId, this.listingId});
+  final Future<List<XFile>> Function(int limit)? pickImages; // chèn khi test
+  const CustomerDisputeScreen({super.key, required this.source, required this.title, this.auctionId, this.listingId, this.pickImages});
 
   @override
   State<CustomerDisputeScreen> createState() => _CustomerDisputeScreenState();
@@ -22,7 +26,7 @@ class CustomerDisputeScreen extends StatefulWidget {
 class _CustomerDisputeScreenState extends State<CustomerDisputeScreen> {
   final detailCtrl = TextEditingController();
   String? reason;
-  int photos = 0;
+  List<PickedImage> images = [];
   bool _sending = false; // chặn bấm đúp: lần 2 sẽ báo DISPUTE_OPEN đè thông báo thành công
 
   static const _bidderReasons = ['Hàng không đúng mô tả', 'Hàng bị hư hỏng khi vận chuyển', 'Thiếu phụ kiện so với mô tả', 'Giao hàng quá chậm', 'Lý do khác'];
@@ -89,33 +93,9 @@ class _CustomerDisputeScreenState extends State<CustomerDisputeScreen> {
           const FieldLabel('Mô tả chi tiết'),
           TextField(controller: detailCtrl, maxLines: 4, decoration: appInputDecoration('Mô tả cụ thể vấn đề bạn gặp phải…')),
           const SizedBox(height: 16),
-          Text('Ảnh/bằng chứng ($photos/4)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text('Ảnh/bằng chứng (${images.length}/4)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Row(
-            children: List.generate(4, (i) {
-              final filled = i < photos;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: i == 3 ? 0 : 8),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: Material(
-                      color: filled ? AppColors.neutralBg : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => setState(() => photos = filled ? photos - 1 : photos + 1),
-                        child: Container(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: filled ? null : Border.all(color: const Color(0xFF9AA0A9), width: 1.5)),
-                          child: Icon(filled ? Icons.image_outlined : Icons.add, color: filled ? AppColors.neutralFg : AppColors.muted),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
+          PhotoPicker(images: images, pick: widget.pickImages, onChanged: (v) => setState(() => images = v)),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -136,6 +116,7 @@ class _CustomerDisputeScreenState extends State<CustomerDisputeScreen> {
                           title: widget.title,
                           reason: reason!,
                           detail: detailCtrl.text,
+                          images: images,
                         );
                     if (!mounted) return;
                     // Thất bại: ở lại để giữ nội dung đã nhập (store đã hiện lý do).

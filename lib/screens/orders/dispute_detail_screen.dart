@@ -1,9 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/api_client.dart';
 import '../../core/deferred_refresh.dart';
+import '../../core/picked_image.dart';
 import '../../features/disputes/dispute_repository.dart';
 import '../../theme.dart';
+import '../../widgets/photo_picker.dart';
 import 'order_detail_screen.dart';
 import 'order_labels.dart';
 
@@ -15,6 +20,7 @@ class DisputeDetailScreen extends StatefulWidget {
   final Listenable? refreshSignal;
   final void Function(ApiException)? onSessionExpired;
   final Future<void> Function(String)? onOpenOrder;
+  final Future<List<XFile>> Function(int limit)? pickImages; // chèn khi test
   const DisputeDetailScreen({
     super.key,
     required this.api,
@@ -22,6 +28,7 @@ class DisputeDetailScreen extends StatefulWidget {
     this.refreshSignal,
     this.onSessionExpired,
     this.onOpenOrder,
+    this.pickImages,
   });
 
   @override
@@ -34,6 +41,7 @@ class _DisputeDetailScreenState extends State<DisputeDetailScreen>
   late final String _baseUrl;
   UserDispute? _dispute;
   bool _loading = false;
+  bool _adding = false; // chặn bấm đúp khi đang tải ảnh bổ sung
   String? _error;
   bool get _active =>
       mounted && widget.api.token == _token && ApiClient.baseUrl == _baseUrl;
@@ -106,6 +114,42 @@ class _DisputeDetailScreenState extends State<DisputeDetailScreen>
     }
   }
 
+  void _toast(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+
+  /// Chọn thêm ảnh bằng chứng, tải lên rồi gắn vào tranh chấp đang mở.
+  Future<void> _addPhotos(UserDispute d) async {
+    if (!_active || _loading || _adding) return;
+    final room = DisputeRepository.maxPhotosPerDispute - d.photos.length;
+    if (room <= 0) return;
+    final limit = math.min(room, DisputeRepository.maxPhotosPerRequest);
+    final List<PickedImage> picked;
+    try {
+      picked = await pickPhotos(limit, pick: widget.pickImages);
+    } catch (_) {
+      if (_active) _toast('Không mở được thư viện ảnh. Vui lòng thử lại.');
+      return;
+    }
+    if (picked.isEmpty || !_active) return;
+    setState(() => _adding = true);
+    try {
+      await DisputeRepository(widget.api).addPhotos(d.id, picked);
+      if (_active) _toast('Đã bổ sung ${picked.length} ảnh bằng chứng.');
+    } on ApiException catch (e) {
+      if (!_active) return;
+      _toast(e.message);
+      if (const {'UNAUTHORIZED', 'ACCOUNT_SUSPENDED'}.contains(e.code)) {
+        widget.onSessionExpired?.call(e);
+      }
+    } catch (_) {
+      if (_active) _toast('Chưa bổ sung được ảnh. Vui lòng thử lại.');
+    } finally {
+      if (mounted) setState(() => _adding = false);
+    }
+    if (_active) await _load(); // trạng thái có thể đã đổi (đã xử lý) hoặc ảnh mới
+  }
+
   Future<void> _openOrder() async {
     final dispute = _dispute;
     if (!_active || _loading || _error != null || dispute == null) return;
@@ -134,6 +178,62 @@ class _DisputeDetailScreenState extends State<DisputeDetailScreen>
         ),
         child: Padding(padding: const EdgeInsets.all(18), child: child),
       );
+
+  /// Chỉ bổ sung được khi tranh chấp còn mở và chưa đủ số ảnh tối đa của BE.
+  bool _canAddPhotos(UserDispute d) =>
+      d.open && d.photos.length < DisputeRepository.maxPhotosPerDispute;
+
+  static const _roleLabels = {
+    'bidder': 'Người mua',
+    'seller': 'Người bán',
+    'warehouse': 'Kho',
+  };
+
+  Widget _photoThumb(DisputePhoto photo) {
+    final label = _roleLabels[photo.uploaderRole] ?? 'Ảnh';
+    return Semantics(
+      button: true,
+      label: 'Xem ảnh của $label',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (_) => Dialog(
+            child: InteractiveViewer(
+              child: Image.network(
+                photo.url,
+                errorBuilder: (_, __, ___) => const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Không tải được ảnh.'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: Column(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              photo.url,
+              width: 88,
+              height: 88,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 88,
+                height: 88,
+                color: AppColors.neutralBg,
+                child: const Icon(Icons.broken_image_outlined,
+                    color: AppColors.muted),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+        ]),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +318,29 @@ class _DisputeDetailScreenState extends State<DisputeDetailScreen>
                             ]),
                       ),
                   ])),
+              if (d.photos.isNotEmpty || _canAddPhotos(d))
+                _card(Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Ảnh bằng chứng (${d.photos.length})',
+                          style: Theme.of(context).textTheme.titleMedium),
+                      if (d.photos.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Wrap(spacing: 8, runSpacing: 8, children: [
+                          for (final photo in d.photos) _photoThumb(photo),
+                        ]),
+                      ],
+                      if (_canAddPhotos(d)) ...[
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _loading || _error != null || _adding
+                              ? null
+                              : () => _addPhotos(d),
+                          icon: const Icon(Icons.add_photo_alternate_outlined),
+                          label: Text(_adding ? 'Đang tải ảnh…' : 'Bổ sung ảnh'),
+                        ),
+                      ],
+                    ])),
               FilledButton.icon(
                 onPressed: _loading || _error != null ? null : _openOrder,
                 icon: const Icon(Icons.receipt_long_outlined),

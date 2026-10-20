@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:bidvibe/core/api_client.dart';
+import 'package:bidvibe/core/picked_image.dart';
 import 'package:bidvibe/features/disputes/dispute_repository.dart';
 import 'package:bidvibe/features/listings/listing_repository.dart';
 
@@ -74,16 +76,104 @@ void main() {
     final api = ApiClient(
       client: MockClient((r) async {
         seen.add('${r.method} ${r.url.path}');
+        if (r.url.path == '/api/uploads/images') {
+          return ok({'urls': ['https://cdn.test/a.png']});
+        }
         return ok({'id': '77'});
       }),
     )..token = 't';
     addTearDown(api.close);
     final repo = ListingRepository(api);
-    final id = await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', photos: 2, progress: DraftProgress());
+    final id = await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: [PickedImage(Uint8List(3), 'a.png')], progress: DraftProgress());
     expect(id, '77');
-    expect(seen, ['POST /api/listings', 'POST /api/listings/77/photos', 'POST /api/listings/77/submit']);
+    expect(seen, ['POST /api/listings', 'POST /api/uploads/images', 'POST /api/listings/77/photos', 'POST /api/listings/77/submit']);
     await expectLater(repo.shipToWarehouse('x'), throwsA(isA<ApiException>()));
-    expect(seen.length, 3);
+    expect(seen.length, 4);
+  });
+
+  test('tạo tin có ảnh chọn từ máy: tải lên Storage trước, gắn đúng URL thật, thử lại không tải lại', () async {
+    final seen = <String>[];
+    Map<String, dynamic>? photoBody;
+    var fail = true;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add('${r.method} ${r.url.path}${r.url.query.isEmpty ? '' : '?${r.url.query}'}');
+        if (r.url.path == '/api/uploads/images') {
+          expect(r.headers['content-type'], startsWith('multipart/form-data'));
+          return ok({'urls': ['https://cdn.test/a.jpg', 'https://cdn.test/b.png']});
+        }
+        if (r.url.path == '/api/listings/77/photos') {
+          if (fail) {
+            fail = false;
+            return http.Response(jsonEncode({'success': false, 'error': {'code': 'X', 'message': 'loi'}}), 500);
+          }
+          photoBody = jsonDecode(r.body) as Map<String, dynamic>;
+        }
+        return ok({'id': '77'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    final repo = ListingRepository(api);
+    final imgs = [
+      PickedImage(Uint8List.fromList([1, 2, 3]), 'a.jpg'),
+      PickedImage(Uint8List.fromList([4, 5, 6]), 'b.png'),
+    ];
+    final progress = DraftProgress();
+    await expectLater(
+      repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: imgs, progress: progress),
+      throwsA(isA<ApiException>()),
+    );
+    await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: imgs, progress: progress);
+    expect(photoBody, {'urls': ['https://cdn.test/a.jpg', 'https://cdn.test/b.png']});
+    expect(seen.where((s) => s.startsWith('POST /api/uploads/images')).toList(), ['POST /api/uploads/images?purpose=listing']);
+  });
+
+  test('tạo tin không có ảnh: báo lỗi ngay, không tạo bản nháp', () async {
+    final seen = <String>[];
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add(r.url.path);
+        return ok({'id': '77'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    await expectLater(
+      ListingRepository(api).createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: const [], progress: DraftProgress()),
+      throwsA(isA<ApiException>()),
+    );
+    expect(seen, isEmpty);
+  });
+
+  test('đổi ảnh giữa hai lần gửi: tải lại bộ ảnh mới, không dùng URL của bộ cũ', () async {
+    final photoBodies = <Map<String, dynamic>>[];
+    var uploads = 0;
+    var fail = true;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        if (r.url.path == '/api/uploads/images') {
+          uploads++;
+          return ok({'urls': ['https://cdn.test/$uploads.png']});
+        }
+        if (r.url.path == '/api/listings/77/photos') {
+          if (fail) {
+            fail = false;
+            return http.Response(jsonEncode({'success': false, 'error': {'code': 'X', 'message': 'loi'}}), 500);
+          }
+          photoBodies.add(jsonDecode(r.body) as Map<String, dynamic>);
+        }
+        return ok({'id': '77'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    final repo = ListingRepository(api);
+    final progress = DraftProgress();
+    await expectLater(
+      repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: [PickedImage(Uint8List(3), 'old.png')], progress: progress),
+      throwsA(isA<ApiException>()),
+    );
+    await repo.createAndSubmit(title: 'A', category: 'shoes', startingPrice: 1, durationHours: 24, condition: 'Mới', images: [PickedImage(Uint8List(3), 'new.png')], progress: progress);
+    expect(uploads, 2);
+    expect(photoBodies.single, {'urls': ['https://cdn.test/2.png']});
   });
 
   test('gợi ý giá: đọc giá, khoảng và giải thích từ BE; giá không hợp lệ bị từ chối', () async {
@@ -108,6 +198,79 @@ void main() {
     expect((s.price, s.low, s.high, s.fromHistory), (3300000, 2750000, 4600000, true));
     price = 0;
     await expectLater(repo.suggestPrice(category: 'shoes', condition: 'x'), throwsA(isA<ApiException>()));
+  });
+
+  test('mở tranh chấp có ảnh: tải lên purpose=dispute trước, rồi gửi photoUrls', () async {
+    final seen = <String>[];
+    Map<String, dynamic>? body;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add('${r.method} ${r.url.path}${r.url.query.isEmpty ? '' : '?${r.url.query}'}');
+        if (r.url.path == '/api/uploads/images') {
+          return ok({'urls': ['https://cdn.test/d1.png', 'https://cdn.test/d2.png']});
+        }
+        body = jsonDecode(r.body) as Map<String, dynamic>;
+        return ok({'id': '9'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    await ListingRepository(api).openDispute(
+      orderId: '11',
+      title: 't',
+      reason: 'r',
+      images: [PickedImage(Uint8List(3), 'a.png'), PickedImage(Uint8List(3), 'b.png')],
+    );
+    expect(seen, ['POST /api/uploads/images?purpose=dispute', 'POST /api/disputes']);
+    expect(body!['photoUrls'], ['https://cdn.test/d1.png', 'https://cdn.test/d2.png']);
+  });
+
+  test('mở tranh chấp không ảnh: không tải lên, không gửi photoUrls; ảnh lỗi thì không mở tranh chấp', () async {
+    final seen = <String>[];
+    Map<String, dynamic>? body;
+    final api = ApiClient(
+      client: MockClient((r) async {
+        seen.add(r.url.path);
+        if (r.url.path == '/api/uploads/images') {
+          return http.Response(jsonEncode({'success': false, 'error': {'code': 'UPLOAD_FAILED', 'message': 'loi'}}), 502);
+        }
+        body = jsonDecode(r.body) as Map<String, dynamic>;
+        return ok({'id': '9'});
+      }),
+    )..token = 't';
+    addTearDown(api.close);
+    final repo = ListingRepository(api);
+    await repo.openDispute(orderId: '11', title: 't', reason: 'r');
+    expect(seen, ['/api/disputes']);
+    expect(body!.containsKey('photoUrls'), isFalse);
+    seen.clear();
+    await expectLater(
+      repo.openDispute(orderId: '11', title: 't', reason: 'r', images: [PickedImage(Uint8List(3), 'a.png')]),
+      throwsA(isA<ApiException>()),
+    );
+    expect(seen, ['/api/uploads/images'], reason: 'ảnh lỗi thì chưa mở tranh chấp, ký quỹ chưa bị giữ');
+  });
+
+  test('tranh chấp của tôi: đọc ảnh bằng chứng, bỏ ảnh có URL lạ, thiếu photos thì rỗng', () async {
+    final api = ApiClient(
+      client: MockClient((_) async => ok({
+        'disputes': [
+          {
+            'id': '5', 'orderId': '11', 'source': 'bidder', 'status': 'open',
+            'photos': [
+              {'id': '1', 'url': 'https://cdn.test/a.png', 'uploaderRole': 'bidder', 'createdAt': '2026-10-20T01:00:00Z'},
+              {'id': '2', 'url': 'javascript:alert(1)', 'uploaderRole': 'seller'},
+              {'id': '3', 'uploaderRole': 'warehouse'},
+            ],
+          },
+          {'id': '6', 'orderId': '12', 'source': 'seller', 'status': 'open'},
+        ],
+      })),
+    )..token = 't';
+    addTearDown(api.close);
+    final list = await DisputeRepository(api).mine();
+    expect(list.first.photos.map((p) => p.url), ['https://cdn.test/a.png']);
+    expect(list.first.photos.single.uploaderRole, 'bidder');
+    expect(list.last.photos, isEmpty);
   });
 
   test('tranh chấp của tôi: đọc trạng thái, kết quả xử lý và mốc thời gian', () async {

@@ -92,20 +92,28 @@ class ApiClient {
   Future<Map<String, dynamic>> uploadAvatar(
     List<int> bytes,
     String filename,
-  ) async {
+  ) => uploadImages([(bytes: bytes, filename: filename)], purpose: 'avatar');
+
+  /// Tải 1–8 ảnh lên `/api/uploads/images`; kết quả có `urls` theo đúng thứ tự file.
+  Future<Map<String, dynamic>> uploadImages(
+    List<({List<int> bytes, String filename})> files, {
+    required String purpose,
+  }) async {
     try {
       final request = http.MultipartRequest(
         'POST',
         Uri.parse(
-          '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/api/uploads/images?purpose=avatar',
+          '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/api/uploads/images?purpose=$purpose',
         ),
       );
       if (token != null) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-      request.files.add(
-        http.MultipartFile.fromBytes('files', bytes, filename: filename),
-      );
+      for (final f in files) {
+        request.files.add(
+          http.MultipartFile.fromBytes('files', f.bytes, filename: f.filename),
+        );
+      }
       final response = await (() async => http.Response.fromStream(
         await client.send(request),
       ))().timeout(const Duration(seconds: 60));

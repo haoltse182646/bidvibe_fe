@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/picked_image.dart';
 import '../../store.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/photo_picker.dart';
 
 /// Sửa tham số phiên đấu giá (Edit Auction Parameters). Chỉ mở được khi
 /// phiếu còn ở trạng thái chờ thẩm định / cần bổ sung, hoặc đang công
@@ -23,7 +25,7 @@ class _SellerEditScreenState extends State<SellerEditScreen> {
   late final TextEditingController startCtrl;
   late String cond;
   late int hours;
-  int extraPhotos = 0;
+  List<PickedImage> extraImages = [];
   bool _saving = false; // chặn bấm đúp khi đang gửi
 
   static const durations = [(24, '24 giờ'), (72, '3 ngày'), (168, '7 ngày')];
@@ -56,7 +58,7 @@ class _SellerEditScreenState extends State<SellerEditScreen> {
     final store = context.watch<AppStore>();
     final l = store.sellerListings.firstWhere((x) => x.id == widget.listingId);
     final needInfo = l.status == 'needinfo';
-    final valid = titleCtrl.text.trim().isNotEmpty && (_start ?? 0) > 0 && (!needInfo || extraPhotos > 0);
+    final valid = titleCtrl.text.trim().isNotEmpty && (_start ?? 0) > 0 && (!needInfo || extraImages.isNotEmpty);
     final editable = l.canEdit;
 
     return Scaffold(
@@ -91,33 +93,9 @@ class _SellerEditScreenState extends State<SellerEditScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            Text('Ảnh/giấy tờ bổ sung ($extraPhotos/4)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            Text('Ảnh/giấy tờ bổ sung (${extraImages.length}/4)', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
-            Row(
-              children: List.generate(4, (i) {
-                final filled = i < extraPhotos;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: i == 3 ? 0 : 8),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Material(
-                        color: filled ? categoryTileColor(l.cat) : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => setState(() => extraPhotos = filled ? extraPhotos - 1 : extraPhotos + 1),
-                          child: Container(
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: filled ? null : Border.all(color: const Color(0xFF9AA0A9), width: 1.5)),
-                            child: Icon(filled ? Icons.image_outlined : Icons.add, color: filled ? AppColors.neutralFg : AppColors.muted),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
+            PhotoPicker(images: extraImages, onChanged: (v) => setState(() => extraImages = v)),
             const SizedBox(height: 18),
           ],
           if (l.status == 'live' && l.count == 0)
@@ -158,7 +136,7 @@ class _SellerEditScreenState extends State<SellerEditScreen> {
                           setState(() => _saving = true);
                           final ok = await store.updateListing(l.id, title: titleCtrl.text.trim(), desc: descCtrl.text.trim(), start: _start!, durationHours: hours, cond: cond);
                           // Thất bại ở bước nào thì ở lại màn này: store đã hiện lý do, người bán sửa tiếp.
-                          final sent = ok && (!needInfo || await store.sellerSubmitMoreInfo(l.id, extraPhotos: extraPhotos));
+                          final sent = ok && (!needInfo || await store.sellerSubmitMoreInfo(l.id, images: extraImages));
                           if (!mounted) return;
                           if (!sent) {
                             setState(() => _saving = false);
