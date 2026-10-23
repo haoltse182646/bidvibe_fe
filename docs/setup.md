@@ -51,6 +51,8 @@ Main hiện tại trên máy Hào đã gọi `WidgetsFlutterBinding.ensureInitia
 
 Socket dùng cùng địa chỉ gốc, không thêm `/api`. Đổi URL cần dừng và chạy lại app. Không chuyển token của môi trường cũ sang môi trường mới; đăng xuất và đăng nhập lại.
 
+Để chạy Android E2E mà không thay đổi URL đang có trong `config/dev.json`, truyền `--dart-define=BIDVIBE_API_BASE_URL=http://10.0.2.2:5000`. Chỉ dùng URL này khi backend local đã được xác minh đang nối tới database thử nghiệm riêng; hướng dẫn và biến cho test account nằm trong [testing.md](testing.md#android-e2e-với-backend-cục-bộ).
+
 ## Khởi động
 
 Terminal BE, tại thư mục backend:

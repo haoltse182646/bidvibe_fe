@@ -21,10 +21,10 @@ Test từng nhóm:
 flutter test test/auction_repository_test.dart test/auction_detail_test.dart test/auction_join_test.dart test/auction_bidding_test.dart test/auction_report_test.dart
 flutter test test/wallet_api_test.dart test/notification_api_test.dart test/notification_shell_test.dart
 flutter test test/profile_api_test.dart test/profile_screen_test.dart test/chat_api_test.dart test/chat_screen_test.dart
-flutter test test/address_api_test.dart test/address_screen_test.dart
+flutter test test/address_repository_test.dart test/my_disputes_screen_test.dart
 ```
 
-Chép đủ các file cần dùng chung: chat_screen_test dùng fixture của chat_api_test và các test Hồ sơ; address_screen_test dùng fixture của address_api_test. Tại mốc soạn docs, test địa chỉ đã có trong bộ bàn giao nhưng chưa thấy trên checkout local của Hào. Nếu báo không tìm thấy file, bổ sung đúng file trước khi chạy; không tạo test rỗng cho lệnh hết lỗi.
+The address repository tests cover validation and CRUD request contracts. The disputes-screen tests cover loading, empty, error/retry, session expiry, and rendered status labels.
 
 Chạy toàn bộ nhóm nghiệp vụ đã được kiểm tra trên QA:
 
@@ -35,6 +35,25 @@ flutter test test/auction_repository_test.dart test/auction_detail_test.dart tes
 Bản QA đạt 154 test với các file bàn giao cuối cùng. Khi code thay đổi, chạy lại để có bằng chứng cho commit mới. Test xuất ảnh QA không được bàn giao vào repo và không nằm trong lệnh trên.
 
 `flutter test` không chỉ định file còn chạy test prototype cũ như screens_smoke_test/store_flow_test. Nhóm cần cập nhật các test cũ khi thay AppStore demo bằng RemoteAppStore/mock API. Không bỏ qua lỗi full suite rồi ghi “tất cả test repo đạt”. Không tắt FlutterError.onError hoặc nuốt exception chỉ để test xanh.
+
+## Android E2E với backend cục bộ
+
+`integration_test/bidder_discovery_test.dart` kiểm tra đăng nhập bidder, tìm một phiên live theo tiêu đề và mở đúng chi tiết phiên. Các request chỉ đọc sau khi đăng nhập; không đặt cọc, đặt giá hoặc thay đổi dữ liệu nghiệp vụ. Test yêu cầu URL emulator `http://10.0.2.2:<port>` và từ chối URL khác trước khi mở app để không vô tình gọi backend hosted.
+
+Chỉ chạy trên Android Emulator trỏ tới backend dùng **database thử nghiệm riêng, đã xác minh là disposable**. Không dùng `.env` trỏ Supabase dùng chung, staging có dữ liệu khách hàng, hoặc production. Backend cần được migrate và có một tài khoản bidder E2E chuyên dụng cùng một phiên đấu giá live đã chuẩn bị trước. Không dùng tài khoản hoặc phiên demo/chung của nhóm.
+
+Ví dụ chạy từ PowerShell (cấp các giá trị qua kho bí mật cục bộ; không ghi chúng vào repo hoặc log):
+
+```powershell
+flutter test integration_test/bidder_discovery_test.dart -d <android-device-id> `
+  --dart-define=BIDVIBE_API_BASE_URL=http://10.0.2.2:5000 `
+  --dart-define=BIDVIBE_E2E_EMAIL=<dedicated-test-email> `
+  --dart-define=BIDVIBE_E2E_PASSWORD=<dedicated-test-password> `
+  --dart-define=BIDVIBE_E2E_AUCTION_TITLE=<live-test-auction-title> `
+  --dart-define=BIDVIBE_E2E_AUCTION_ID=<live-test-auction-id>
+```
+
+`BIDVIBE_API_BASE_URL` chỉ ghi đè `config/dev.json` cho lần chạy được build với define đó. Android debug manifest hiện cho phép HTTP; không thêm ngoại lệ HTTP vào bản release. Thiếu biến test thì E2E bị skip có lý do, không gọi API; URL không phải emulator-local sẽ fail trước khi app tạo request.
 
 ## Test thủ công theo module Hào
 
