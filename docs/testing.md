@@ -38,27 +38,31 @@ Bản QA đạt 154 test với các file bàn giao cuối cùng. Khi code thay �
 
 ## Android E2E với backend cục bộ
 
-`integration_test/bidder_discovery_test.dart` kiểm tra đăng nhập bidder, tìm một phiên live theo tiêu đề và mở đúng chi tiết phiên. Các request chỉ đọc sau khi đăng nhập; không đặt cọc, đặt giá hoặc thay đổi dữ liệu nghiệp vụ. Test yêu cầu URL emulator `http://10.0.2.2:<port>` và từ chối URL khác trước khi mở app để không vô tình gọi backend hosted.
+`integration_test/auction_e2e_test.dart` kiểm tra đăng nhập bidder, tìm đúng phiên live theo tiêu đề và ID, mở chi tiết, quay lại và đăng xuất. Sau đăng nhập, test chỉ đọc dữ liệu; không đặt cọc, đặt giá hoặc thay đổi dữ liệu nghiệp vụ. Test chỉ chấp nhận API URL emulator `http://10.0.2.2:<port>` và từ chối host khác trước khi mở app.
 
 Chỉ chạy trên Android Emulator trỏ tới backend dùng **database thử nghiệm riêng, đã xác minh là disposable**. Không dùng `.env` trỏ Supabase dùng chung, staging có dữ liệu khách hàng, hoặc production. Backend cần được migrate và có một tài khoản bidder E2E chuyên dụng cùng một phiên đấu giá live đã chuẩn bị trước. Không dùng tài khoản hoặc phiên demo/chung của nhóm.
 
-Thông tin backend cục bộ để thực hiện test e2e
-BACKEND_URL=http://127.0.0.1:5000
-TEST_PASSWORD=123456
-TEST_BIDDER_EMAIL=bot1@bidvibe.demo
-TEST_BUYER_EMAIL=minhanh@gmail.com
- 
-Ví dụ chạy từ PowerShell (cấp các giá trị qua kho bí mật cục bộ; không ghi chúng vào repo hoặc log):
+Tạo file JSON ở vị trí cục bộ ngoài repository, với năm compile-time define dưới đây. Dùng tài khoản thử nghiệm riêng và dữ liệu fixture đã chuẩn bị; không đưa file vào source control, in nội dung ra terminal hoặc chia sẻ. Giới hạn quyền đọc file cho tài khoản Windows đang chạy test. Flutter nhúng compile-time define vào test build, vì vậy không dùng tài khoản production hoặc tài khoản dùng chung.
+
+```json
+{
+  "BIDVIBE_API_BASE_URL": "http://10.0.2.2:5000",
+  "BIDVIBE_E2E_EMAIL": "<dedicated-test-email>",
+  "BIDVIBE_E2E_PASSWORD": "<dedicated-test-password>",
+  "BIDVIBE_E2E_AUCTION_TITLE": "<exact-live-test-auction-title>",
+  "BIDVIBE_E2E_AUCTION_ID": "<exact-live-test-auction-id>"
+}
+```
+
+Từ PowerShell, dùng đường dẫn tới file cục bộ đó:
 
 ```powershell
-flutter test integration_test/auction_e2e_test.dart -d emulator-5554 `
-  --dart-define=BIDVIBE_E2E_EMAIL=minhanh@gmail.com `
-  --dart-define=BIDVIBE_E2E_PASSWORD=123456 `
-  --dart-define='BIDVIBE_E2E_AUCTION_TITLE=Giày retro cao cổ "Chicago" 1985 — size 42' `
-  --dart-define=BIDVIBE_E2E_AUCTION_ID=1 `
-  --dart-define=BIDVIBE_API_BASE_URL=http://10.0.2.2:5000
+$defines = "$env:LOCALAPPDATA\BidVibe\e2e-defines.json"
+if (-not (Test-Path -LiteralPath $defines)) { throw "E2E define file is missing." }
+flutter test integration_test/auction_e2e_test.dart -d emulator-5554 "--dart-define-from-file=$defines"
+```
 
-`BIDVIBE_API_BASE_URL` chỉ ghi đè `config/dev.json` cho lần chạy được build với define đó. Android debug manifest hiện cho phép HTTP; không thêm ngoại lệ HTTP vào bản release. Thiếu biến test thì E2E bị skip có lý do, không gọi API; URL không phải emulator-local sẽ fail trước khi app tạo request.
+`BIDVIBE_API_BASE_URL` chỉ ghi đè `config/dev.json` cho lần chạy được build với define đó. Android debug manifest hiện cho phép HTTP; không thêm ngoại lệ HTTP vào bản release. Nếu thiếu define, test bị skip và không gửi request. Nếu URL không trỏ tới `10.0.2.2`, test fail trước khi mở app hoặc gửi request.
 
 ## Test thủ công theo module Hào
 
