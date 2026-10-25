@@ -1,35 +1,45 @@
 # Android E2E Test Result
 
-- Date: 2026-10-24
-- Target: `emulator-5554` (Android 16, API 36)
-- Test: `integration_test/bidder_discovery_test.dart`
-- Command: `flutter test integration_test/bidder_discovery_test.dart -d emulator-5554`
-- Result: **SKIPPED** — 1 test skipped; no E2E assertions ran.
+## Latest run — 2026-10-25
 
-The test reported these required defines as missing: `BIDVIBE_API_BASE_URL`, `BIDVIBE_E2E_EMAIL`, `BIDVIBE_E2E_PASSWORD`, `BIDVIBE_E2E_AUCTION_TITLE`, and `BIDVIBE_E2E_AUCTION_ID`. With the defines absent, the test callback did not run and no login, auction, or other backend requests were made.
+- **Test:** `integration_test/auction_e2e_test.dart`
+- **Device:** `emulator-5554` (Android 16 / API 36)
+- **Backend check:** Port 5000 was listening. The configured `.env` database host was classified as local; no process, user, or machine `DATABASE_URL` override was found.
+- **Build:** **PASS** — the Android debug APK was built and installed.
+- **E2E result:** **FAIL** — the app reached auction discovery, but the configured auction card was not found before the test timed out.
 
-The configured backend `.env` was classified as targeting hosted Supabase. The running backend process's effective environment was not independently verified, and hosted database access for this E2E was not approved. The authenticated flow was therefore not attempted.
+### Failure explanation
 
-To proceed, supply the five values through a secure local mechanism and confirm that reads against the running backend's effective database target are approved. Do not record the password or other secrets in this file.
+After entering the configured title and tapping Search, the test waits up to 45 seconds for an auction card that contains **both** the exact configured title and auction ID. That condition was not met:
 
-## Retry attempt — 2026-10-24
+> Discovery should show the configured live auction title and ID.
 
-- Emulator: **Available** (`emulator-5554`, Android 16 / API 36).
-- Backend: **Started** using the documented `npm run dev` command after confirming `.env` targets localhost and there is no process, user, or machine `DATABASE_URL` override. The backend startup message indicated its scheduler was active.
-- E2E result: **BLOCKED — test not run**. The five required `BIDVIBE_*` Dart defines were not available in the local process/user/machine environment. The supplied auction title and ID were blank in the response; the strings used were example-style placeholders, not verified fixture values.
-- Cleanup: The backend process was stopped without running the E2E test. No test login or auction requests were made.
+The failure was reported by `_pumpUntil` at `auction_e2e_test.dart:35`, called from the discovery check at line 107. In plain language, the app did not show a card matching the two configured fixture values during the wait.
 
-Before retrying, make the five Dart defines available through a secure local mechanism, provide the actual live fixture title and ID, and verify the local disposable database still contains those fixtures. Do not store passwords or other secrets in this report.
+The command copied into the test log shows example-style replacement strings for the title and ID. If those strings were passed literally, instead of being replaced with the real live auction title and ID, the test would search for a fixture that does not exist. However, the actual define values were deliberately censored, so this report cannot confirm whether that is what happened.
 
-## Retry attempt — 2026-10-24 (latest)
+Other possibilities that cannot be distinguished from this log alone:
 
-- Target: `emulator-5554` (Android 16 / API 36); device was online.
-- Backend: Not running on port 5000 when checked. It was not started for this attempt because the harness had no required inputs and would skip before executing its test callback.
-- Input check: **BLOCKED** — none of `BIDVIBE_API_BASE_URL`, `BIDVIBE_E2E_EMAIL`, `BIDVIBE_E2E_PASSWORD`, `BIDVIBE_E2E_AUCTION_TITLE`, or `BIDVIBE_E2E_AUCTION_ID` were available to the Flutter process. No values were printed or recorded.
-- Command: `flutter test integration_test\bidder_discovery_test.dart -d emulator-5554`
-- Build/install: **PASS** — debug APK built and installed on the emulator.
-- Test result: **SKIPPED** — Flutter reported the single test skipped because all five required defines were missing. The test callback and its login, discovery, detail, and logout assertions did not execute.
-- Network/data effects: **None from this test** — no API request or login was attempted.
-- Overall E2E status: **BLOCKED**, not passed.
+- The title or ID does not exactly match the same auction.
+- The auction is not live or is not visible to the bidder.
+- The API search returned no matching auction.
+- The returned auction data did not match the UI's exact title/ID locator.
 
-Next safe step: supply the five defines locally through the approved secure mechanism, including the exact live test auction title and ID. Confirm the local backend is running against the verified disposable database, then rerun the same command with those defines supplied as `--dart-define` values. Do not place credentials in this report or source control.
+### Journey reached and effects
+
+The test did not skip for missing defines and progressed to the discovery step. It failed before confirming/opening auction details, navigating back, or logging out. No deposit or bid action is part of this journey, and neither was attempted. The run reached backend-dependent discovery, but the captured output has no sanitized request/response details to identify what the API returned.
+
+The report intentionally contains no credential values, tokens, or unredacted personal information.
+
+### Recommended next steps
+
+1. Locally confirm the compile-time defines contain the real dedicated bidder account and the exact title and ID of the **same** live test auction; do not add these values to this report.
+2. Confirm that the auction is live and visible to that bidder on the backend addressed through `http://10.0.2.2:5000`.
+3. Re-run the documented command with the real values substituted for the examples.
+4. If it still fails, capture only sanitized evidence such as result count and returned auction title/ID. Do not include passwords, JWTs, or personal data.
+
+## Earlier attempts
+
+- **2026-10-24, `bidder_discovery_test.dart`:** **SKIPPED** because required defines were absent. The test body did not run.
+- **2026-10-24, `auction_e2e_test.dart`:** **BLOCKED/SKIPPED** because the required local test configuration was unavailable. APK build/install succeeded in the later attempt; no E2E assertions ran.
+- **2026-10-25, before the latest run:** **SKIPPED** because no E2E define file/values were available. The emulator was online and port 5000 was listening; no test API requests were made in that skipped run.

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+// Supply these values with --dart-define; keep account credentials out of source.
 const _email = String.fromEnvironment('BIDVIBE_E2E_EMAIL');
 const _password = String.fromEnvironment('BIDVIBE_E2E_PASSWORD');
 const _auctionTitle = String.fromEnvironment('BIDVIBE_E2E_AUCTION_TITLE');

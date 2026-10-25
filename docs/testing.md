@@ -42,27 +42,18 @@ Bản QA đạt 154 test với các file bàn giao cuối cùng. Khi code thay �
 
 Chỉ chạy trên Android Emulator trỏ tới backend dùng **database thử nghiệm riêng, đã xác minh là disposable**. Không dùng `.env` trỏ Supabase dùng chung, staging có dữ liệu khách hàng, hoặc production. Backend cần được migrate và có một tài khoản bidder E2E chuyên dụng cùng một phiên đấu giá live đã chuẩn bị trước. Không dùng tài khoản hoặc phiên demo/chung của nhóm.
 
-Tạo file JSON ở vị trí cục bộ ngoài repository, với năm compile-time define dưới đây. Dùng tài khoản thử nghiệm riêng và dữ liệu fixture đã chuẩn bị; không đưa file vào source control, in nội dung ra terminal hoặc chia sẻ. Giới hạn quyền đọc file cho tài khoản Windows đang chạy test. Flutter nhúng compile-time define vào test build, vì vậy không dùng tài khoản production hoặc tài khoản dùng chung.
-
-```json
-{
-  "BIDVIBE_API_BASE_URL": "http://10.0.2.2:5000",
-  "BIDVIBE_E2E_EMAIL": "<dedicated-test-email>",
-  "BIDVIBE_E2E_PASSWORD": "<dedicated-test-password>",
-  "BIDVIBE_E2E_AUCTION_TITLE": "<exact-live-test-auction-title>",
-  "BIDVIBE_E2E_AUCTION_ID": "<exact-live-test-auction-id>"
-}
-```
-
-Từ PowerShell, dùng đường dẫn tới file cục bộ đó:
+Chạy test bằng cách truyền trực tiếp năm compile-time define. Thay email, mật khẩu và fixture placeholders bằng thông tin của tài khoản bidder và phiên live dành riêng cho kiểm thử:
 
 ```powershell
-$defines = "$env:LOCALAPPDATA\BidVibe\e2e-defines.json"
-if (-not (Test-Path -LiteralPath $defines)) { throw "E2E define file is missing." }
-flutter test integration_test/auction_e2e_test.dart -d emulator-5554 "--dart-define-from-file=$defines"
+flutter test integration_test/auction_e2e_test.dart -d emulator-5554 `
+  --dart-define='BIDVIBE_E2E_EMAIL=replace-with-dedicated-test-email' `
+  --dart-define='BIDVIBE_E2E_PASSWORD=replace-with-dedicated-test-password' `
+  --dart-define='BIDVIBE_E2E_AUCTION_TITLE=replace-with-exact-live-auction-title' `
+  --dart-define='BIDVIBE_E2E_AUCTION_ID=replace-with-exact-live-auction-id' `
+  --dart-define=BIDVIBE_API_BASE_URL=http://10.0.2.2:5000
 ```
 
-`BIDVIBE_API_BASE_URL` chỉ ghi đè `config/dev.json` cho lần chạy được build với define đó. Android debug manifest hiện cho phép HTTP; không thêm ngoại lệ HTTP vào bản release. Nếu thiếu define, test bị skip và không gửi request. Nếu URL không trỏ tới `10.0.2.2`, test fail trước khi mở app hoặc gửi request.
+Do `--dart-define` xuất hiện trong command line và Flutter nhúng các giá trị vào test build, chỉ dùng tài khoản thử nghiệm riêng, có thể xoay vòng mật khẩu; không lưu lệnh đã điền thông tin vào tài liệu, script hoặc shell history dùng chung. Không dùng tài khoản production hoặc tài khoản dùng chung. `BIDVIBE_API_BASE_URL` ghi đè `config/dev.json` cho build này. Android debug manifest cho phép HTTP; không thêm ngoại lệ HTTP vào bản release. Nếu thiếu define, test bị skip và không gửi request. Nếu URL không trỏ tới `10.0.2.2`, test fail trước khi mở app hoặc gửi request.
 
 ## Test thủ công theo module Hào
 
