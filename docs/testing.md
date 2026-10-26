@@ -29,12 +29,26 @@ The address repository tests cover validation and CRUD request contracts. The di
 Chạy toàn bộ nhóm nghiệp vụ đã được kiểm tra trên QA:
 
 ```powershell
-flutter test test/auction_repository_test.dart test/auction_detail_test.dart test/wallet_api_test.dart test/auction_join_test.dart test/auction_bidding_test.dart test/notification_api_test.dart test/notification_shell_test.dart test/auction_report_test.dart test/profile_api_test.dart test/profile_screen_test.dart test/chat_api_test.dart test/chat_screen_test.dart test/address_api_test.dart test/address_screen_test.dart
+flutter test test/auction_repository_test.dart test/auction_detail_test.dart test/wallet_api_test.dart test/auction_join_test.dart test/auction_bidding_test.dart test/notification_api_test.dart test/notification_shell_test.dart test/auction_report_test.dart test/profile_api_test.dart test/profile_screen_test.dart test/chat_api_test.dart test/chat_screen_test.dart test/address_repository_test.dart test/my_disputes_screen_test.dart
 ```
 
-Bản QA đạt 154 test với các file bàn giao cuối cùng. Khi code thay đổi, chạy lại để có bằng chứng cho commit mới. Test xuất ảnh QA không được bàn giao vào repo và không nằm trong lệnh trên.
+Bản QA trước đây đạt 154 test với các file bàn giao lúc đó. Hai đường dẫn địa chỉ trong lệnh cũ đã được thay bằng tên file test hiện có. Khi code thay đổi, chạy lại để có bằng chứng cho commit mới. Test xuất ảnh QA không được bàn giao vào repo và không nằm trong lệnh trên.
 
 `flutter test` không chỉ định file còn chạy test prototype cũ như screens_smoke_test/store_flow_test. Nhóm cần cập nhật các test cũ khi thay AppStore demo bằng RemoteAppStore/mock API. Không bỏ qua lỗi full suite rồi ghi “tất cả test repo đạt”. Không tắt FlutterError.onError hoặc nuốt exception chỉ để test xanh.
+
+## Kết quả chạy gần nhất — 2026-10-26
+
+Môi trường: nhánh `testing_branch`, commit `fd1d169`; Flutter 3.47.4 / Dart 3.13.3; Android Emulator `emulator-5554` (Android 16 / API 36).
+
+| Lệnh / kiểm tra | Kết quả | Ghi chú |
+|---|---|---|
+| `flutter analyze` | **PASS** | Không phát hiện issue. |
+| `flutter test --coverage` | **PASS** | 244 test pass, 2 test bị skip; không có unit/widget test fail. Hai test live-order trong `test/order_live_test.dart` cần các biến môi trường backend riêng, chưa được cung cấp nên không gửi request. |
+| Android `auction_e2e_test.dart` (fixture cập nhật) | **FAIL** | APK build/cài đặt thành công; test tìm thấy card khớp tiêu đề và ID. Khi mở card, Flutter cảnh báo vị trí tap không hit được nút, có thể do card ngoài vùng nhìn thấy/bị che; bước xác nhận chi tiết timeout. Test chưa quay lại hoặc đăng xuất; không đặt cọc/đặt giá. |
+
+Phân tích đầy đủ và nguyên nhân nghi vấn được ghi tại [e2e_test_result.md](./e2e_test_result.md); kết quả suite và giới hạn coverage tại [unit_test_report.md](./unit_test_report.md). LCOV đo coverage theo dòng, không chứng minh mọi function đều có test. E2E đã xác nhận fixture mới được tìm thấy, nhưng journey chưa hoàn tất.
+
+Các tình huống kiểm thử thủ công theo module và xuyên role bên dưới **chưa được thực hiện** trong lần chạy này. Chúng cần các role, dữ liệu/đơn hàng đã chuẩn bị và thao tác đối chiếu backend; kết quả của analyzer, widget/API tests hoặc E2E không thay thế được bước QA thủ công đó.
 
 ## Android E2E với backend cục bộ
 

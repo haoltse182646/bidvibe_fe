@@ -1,45 +1,44 @@
 # Android E2E Test Result
 
-## Latest run — 2026-10-25
+## Latest run — 2026-10-26 (updated auction fixture)
 
 - **Test:** `integration_test/auction_e2e_test.dart`
-- **Device:** `emulator-5554` (Android 16 / API 36)
-- **Backend check:** Port 5000 was listening. The configured `.env` database host was classified as local; no process, user, or machine `DATABASE_URL` override was found.
-- **Build:** **PASS** — the Android debug APK was built and installed.
-- **E2E result:** **FAIL** — the app reached auction discovery, but the configured auction card was not found before the test timed out.
+- **Environment:** branch `testing_branch`, commit `fd1d169`; Flutter 3.47.4 / Dart 3.13.3; `emulator-5554` (Android 16 / API 36).
+- **Safety prerequisite:** The user confirmed the bidder account is dedicated to E2E and the backend uses an isolated, disposable test database. This was not independently inspected.
+- **Build/install:** **PASS** — the Android debug APK was built and installed.
+- **E2E result:** **FAIL** — discovery found the configured auction card, but the test did not open its details.
 
 ### Failure explanation
 
-After entering the configured title and tapping Search, the test waits up to 45 seconds for an auction card that contains **both** the exact configured title and auction ID. That condition was not met:
+The updated fixture was found: the test located a card matching both the configured title and auction ID. The failure occurred at the next step, when it tried to tap **“Xem chi tiết phiên”**. Flutter emitted a hit-test warning: the button's tap position would not hit the button, possibly because the widget was off-screen or obscured. The following details assertion then timed out:
 
-> Discovery should show the configured live auction title and ID.
+> The selected auction details should match the configured ID.
 
-The failure was reported by `_pumpUntil` at `auction_e2e_test.dart:35`, called from the discovery check at line 107. In plain language, the app did not show a card matching the two configured fixture values during the wait.
-
-The command copied into the test log shows example-style replacement strings for the title and ID. If those strings were passed literally, instead of being replaced with the real live auction title and ID, the test would search for a fixture that does not exist. However, the actual define values were deliberately censored, so this report cannot confirm whether that is what happened.
-
-Other possibilities that cannot be distinguished from this log alone:
-
-- The title or ID does not exactly match the same auction.
-- The auction is not live or is not visible to the bidder.
-- The API search returned no matching auction.
-- The returned auction data did not match the UI's exact title/ID locator.
+The warning occurred at the tap in `auction_e2e_test.dart:116`; the assertion was reported by `_pumpUntil` at line 35, called from line 117. The most likely cause based on the output is that the matching card/button was outside the visible viewport (or covered) and the integration test tapped without first scrolling it into view. The test output alone does not prove which condition prevented the hit. The supplied credentials and fixture strings are intentionally not repeated here.
 
 ### Journey reached and effects
 
-The test did not skip for missing defines and progressed to the discovery step. It failed before confirming/opening auction details, navigating back, or logging out. No deposit or bid action is part of this journey, and neither was attempted. The run reached backend-dependent discovery, but the captured output has no sanitized request/response details to identify what the API returned.
+The test signed in, reached discovery, submitted the search, and found the matching card. It failed before verifying details, navigating back, or reaching logout. No deposit or bid action is part of this journey, and neither was attempted. Because the run ended before logout, check the emulator session and sign out manually before reusing it if the app retained the login.
 
-The report intentionally contains no credential values, tokens, or unredacted personal information.
+The report intentionally contains no credential values, tokens, or personal account information.
 
 ### Recommended next steps
 
-1. Locally confirm the compile-time defines contain the real dedicated bidder account and the exact title and ID of the **same** live test auction; do not add these values to this report.
-2. Confirm that the auction is live and visible to that bidder on the backend addressed through `http://10.0.2.2:5000`.
-3. Re-run the documented command with the real values substituted for the examples.
-4. If it still fails, capture only sanitized evidence such as result count and returned auction title/ID. Do not include passwords, JWTs, or personal data.
+1. Update the E2E test to scroll the matching card/button into view before tapping it (or otherwise ensure the button is visible and hittable).
+2. Rerun the test and verify that details, back navigation, and logout all complete.
+
+## Related automated checks — 2026-10-26
+
+| Command | Result |
+|---|---|
+| `flutter analyze` | **PASS** — no issues found |
+| `flutter test --coverage` | **PASS** — 244 passed, 2 skipped, no test failures |
+
+The two skipped tests are live-order tests that require backend environment variables; they made no backend requests. See [unit_test_report.md](./unit_test_report.md) for the line coverage result and coverage limitations.
 
 ## Earlier attempts
 
 - **2026-10-24, `bidder_discovery_test.dart`:** **SKIPPED** because required defines were absent. The test body did not run.
 - **2026-10-24, `auction_e2e_test.dart`:** **BLOCKED/SKIPPED** because the required local test configuration was unavailable. APK build/install succeeded in the later attempt; no E2E assertions ran.
 - **2026-10-25, before the latest run:** **SKIPPED** because no E2E define file/values were available. The emulator was online and port 5000 was listening; no test API requests were made in that skipped run.
+- **2026-10-26, earlier `auction_e2e_test.dart` run:** **FAIL** — the first fixture did not produce a matching title/ID card in discovery; the test stopped before details or logout.

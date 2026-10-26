@@ -1,5 +1,18 @@
 # Flutter Unit and Widget Test Report
 
+## Latest validation — 2026-10-26
+
+**Environment:** branch `testing_branch`, commit `fd1d169`; Flutter 3.47.4 / Dart 3.13.3.
+
+| Command | Result |
+|---|---|
+| `flutter analyze` | **PASS** — no issues found |
+| `flutter test --coverage` | **PASS** — 244 passed, 2 skipped, no test failures |
+
+The two skips are the live-order cases in `test/order_live_test.dart`. Their required backend environment variables were not supplied, so neither test body made a backend request. Current LCOV line coverage is **5,985 / 7,839 (76.35%)** across 65 source-file records. The report does not contain function-level coverage data, so this does not prove that every source function has a test. See [e2e_test_result.md](./e2e_test_result.md) for the separate Android E2E failure.
+
+## Earlier run — 2026-10-24
+
 **Date:** 2026-10-24  
 **Scope:** Flutter unit/widget tests only. No backend, database, hosted API, or Android E2E requests were made.
 
