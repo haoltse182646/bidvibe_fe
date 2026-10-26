@@ -113,7 +113,16 @@ void main() {
             'Discovery should show the configured live auction title and ID.',
       );
 
-      await tester.tap(openAuctionButton);
+      await tester.ensureVisible(openAuctionButton);
+      await tester.pump(const Duration(milliseconds: 300));
+      final tappableOpenAuctionButton = openAuctionButton.hitTestable();
+      expect(
+        tappableOpenAuctionButton,
+        findsOneWidget,
+        reason:
+            'The matching auction detail button should be visible and tappable.',
+      );
+      await tester.tap(tappableOpenAuctionButton);
       await _pumpUntil(
         tester,
         () =>

@@ -2,14 +2,17 @@
 
 ## Latest validation — 2026-10-26
 
-**Environment:** branch `testing_branch`, commit `fd1d169`; Flutter 3.47.4 / Dart 3.13.3.
+**Environment:** branch `testing_branch`, commit `30ea7b2`; Flutter 3.47.4 / Dart 3.13.3.
 
 | Command | Result |
 |---|---|
+| `flutter pub get` | **PASS** — dependencies resolved; 28 newer versions are outside current dependency constraints |
 | `flutter analyze` | **PASS** — no issues found |
+| Documented focused business-test groups | **PASS** — auction 45, wallet/notifications 21, profile/chat 66, address/disputes 9 |
+| Documented QA business suite | **PASS** — 141 passed |
 | `flutter test --coverage` | **PASS** — 244 passed, 2 skipped, no test failures |
 
-The two skips are the live-order cases in `test/order_live_test.dart`. Their required backend environment variables were not supplied, so neither test body made a backend request. Current LCOV line coverage is **5,985 / 7,839 (76.35%)** across 65 source-file records. The report does not contain function-level coverage data, so this does not prove that every source function has a test. See [e2e_test_result.md](./e2e_test_result.md) for the separate Android E2E failure.
+The two skips are the live-order cases in `test/order_live_test.dart`. Their required backend environment variables were not supplied, so neither test body made a backend request. Current LCOV line coverage is **5,985 / 7,839 (76.35%)** across 65 source-file records. The report does not contain function-level coverage data, so this does not prove that every source function has a test. The latest configured Android `auction_e2e_test.dart` build/install succeeded and exercised sign-in, discovery, and details, but failed while returning to discovery; `bidder_discovery_test.dart` was not run with those defines. See [e2e_test_result.md](./e2e_test_result.md) for suspected causes and next diagnostic steps.
 
 ## Earlier run — 2026-10-24
 

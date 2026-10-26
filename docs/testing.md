@@ -38,15 +38,24 @@ Bản QA trước đây đạt 154 test với các file bàn giao lúc đó. Hai
 
 ## Kết quả chạy gần nhất — 2026-10-26
 
-Môi trường: nhánh `testing_branch`, commit `fd1d169`; Flutter 3.47.4 / Dart 3.13.3; Android Emulator `emulator-5554` (Android 16 / API 36).
+Môi trường: nhánh `testing_branch`, commit `30ea7b2`; Flutter 3.47.4 / Dart 3.13.3; Android Emulator `emulator-5554` (Android 16 / API 36). `flutter pub get` thành công. Có 28 package báo phiên bản mới hơn nhưng không tương thích với các constraint hiện tại; dependency không được nâng cấp trong lượt kiểm thử này.
 
 | Lệnh / kiểm tra | Kết quả | Ghi chú |
 |---|---|---|
 | `flutter analyze` | **PASS** | Không phát hiện issue. |
-| `flutter test --coverage` | **PASS** | 244 test pass, 2 test bị skip; không có unit/widget test fail. Hai test live-order trong `test/order_live_test.dart` cần các biến môi trường backend riêng, chưa được cung cấp nên không gửi request. |
-| Android `auction_e2e_test.dart` (fixture cập nhật) | **FAIL** | APK build/cài đặt thành công; test tìm thấy card khớp tiêu đề và ID. Khi mở card, Flutter cảnh báo vị trí tap không hit được nút, có thể do card ngoài vùng nhìn thấy/bị che; bước xác nhận chi tiết timeout. Test chưa quay lại hoặc đăng xuất; không đặt cọc/đặt giá. |
+| Nhóm đấu giá: `auction_repository_test.dart`, `auction_detail_test.dart`, `auction_join_test.dart`, `auction_bidding_test.dart`, `auction_report_test.dart` | **PASS** | 45 test pass. |
+| Nhóm ví/thông báo: `wallet_api_test.dart`, `notification_api_test.dart`, `notification_shell_test.dart` | **PASS** | 21 test pass. |
+| Nhóm hồ sơ/chat: `profile_api_test.dart`, `profile_screen_test.dart`, `chat_api_test.dart`, `chat_screen_test.dart` | **PASS** | 66 test pass. |
+| Nhóm địa chỉ/tranh chấp: `address_repository_test.dart`, `my_disputes_screen_test.dart` | **PASS** | 9 test pass. |
+| Nhóm nghiệp vụ QA đầy đủ theo lệnh trong tài liệu | **PASS** | 141 test pass. Đây là lệnh tổng hợp các nhóm trên, không cộng lại vào tổng của suite. |
+| `flutter test --coverage` | **PASS** | 244 test pass, 2 skipped, không có test fail. Hai test live-order cần biến môi trường backend riêng; không gửi request khi thiếu cấu hình. |
+| Android `auction_e2e_test.dart` (lần chạy có define) | **FAIL** | APK build/cài đặt thành công; test đăng nhập, tìm đúng phiên và mở được chi tiết. Sau `pageBack()`, chờ tối đa 45 giây nhưng không thấy màn khám phá; test dừng trước logout. Không đặt cọc/đặt giá. Chưa xác định vì sao màn khám phá không xuất hiện; xem [e2e_test_result.md](./e2e_test_result.md). |
+| Android `bidder_discovery_test.dart` | **SKIPPED** | Không chạy lại trong lần này; lần chạy trước không có 5 define nên test body không chạy. |
+| Kiểm thử thủ công module và xuyên role | **NOT RUN** | Cần backend và dữ liệu nhiều role đã chuẩn bị, quyền đối chiếu Postman, và người thực hiện; không thể thay bằng test tự động. |
 
-Phân tích đầy đủ và nguyên nhân nghi vấn được ghi tại [e2e_test_result.md](./e2e_test_result.md); kết quả suite và giới hạn coverage tại [unit_test_report.md](./unit_test_report.md). LCOV đo coverage theo dòng, không chứng minh mọi function đều có test. E2E đã xác nhận fixture mới được tìm thấy, nhưng journey chưa hoàn tất.
+Phân tích E2E và giới hạn lần chạy được ghi tại [e2e_test_result.md](./e2e_test_result.md); kết quả suite và giới hạn coverage tại [unit_test_report.md](./unit_test_report.md). LCOV đo coverage theo dòng, không chứng minh mọi function đều có test.
+
+`integration_test/bidder_discovery_test.dart` cũng kiểm tra đăng nhập, tìm phiên, mở chi tiết, quay lại và đăng xuất trên cùng app/screen. Đây là test journey trùng lặp về luồng chính; nó không được chỉnh sửa. Trong lần chạy có define này, `auction_e2e_test.dart` đã xác nhận đăng nhập, fixture và chi tiết; lỗi mới xảy ra ở bước quay lại. Cần chẩn đoán trạng thái route/session sau khi pop trước khi xác nhận logout.
 
 Các tình huống kiểm thử thủ công theo module và xuyên role bên dưới **chưa được thực hiện** trong lần chạy này. Chúng cần các role, dữ liệu/đơn hàng đã chuẩn bị và thao tác đối chiếu backend; kết quả của analyzer, widget/API tests hoặc E2E không thay thế được bước QA thủ công đó.
 
