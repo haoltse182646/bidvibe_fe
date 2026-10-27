@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-10-27T15:47:42.725Z",
+  "wallets": {
+    "BIDDER_A": {
+      "balance": 208000,
+      "held": 2000,
+      "available": 208000,
+      "joinBlockedUntil": null
+    },
+    "BIDDER_B": {
+      "balance": 198000,
+      "held": 2000,
+      "available": 198000,
+      "joinBlockedUntil": null
+    }
+  },
+  "auctions": [
+    {
+      "viewer": "BIDDER_A",
+      "id": "5506",
+      "listingId": "5537",
+      "title": "E2E_20261027T152915974Z_BusinessFlow",
+      "status": "active",
+      "isLive": true,
+      "endsAt": "2026-10-27T16:29:16.884Z",
+      "joined": true,
+      "myDeposit": 1000,
+      "myDepositStatus": "held",
+      "myBid": 60000,
+      "leading": false,
+      "currentPrice": 110000,
+      "bidCount": 2
+    },
+    {
+      "viewer": "BIDDER_A",
+      "id": "5507",
+      "listingId": "5538",
+      "title": "E2E_1793115542027_UI",
+      "status": "active",
+      "isLive": true,
+      "endsAt": "2026-10-28T15:39:22.067Z",
+      "joined": true,
+      "myDeposit": 1000,
+      "myDepositStatus": "held",
+      "myBid": 60000,
+      "leading": false,
+      "currentPrice": 110000,
+      "bidCount": 2
+    },
+    {
+      "viewer": "BIDDER_B",
+      "id": "5506",
+      "listingId": "5537",
+      "title": "E2E_20261027T152915974Z_BusinessFlow",
+      "status": "active",
+      "isLive": true,
+      "endsAt": "2026-10-27T16:29:16.884Z",
+      "joined": true,
+      "myDeposit": 1000,
+      "myDepositStatus": "held",
+      "myBid": 110000,
+      "leading": true,
+      "currentPrice": 110000,
+      "bidCount": 2
+    },
+    {
+      "viewer": "BIDDER_B",
+      "id": "5507",
+      "listingId": "5538",
+      "title": "E2E_1793115542027_UI",
+      "status": "active",
+      "isLive": true,
+      "endsAt": "2026-10-28T15:39:22.067Z",
+      "joined": true,
+      "myDeposit": 1000,
+      "myDepositStatus": "held",
+      "myBid": 110000,
+      "leading": true,
+      "currentPrice": 110000,
+      "bidCount": 2
+    }
+  ]
+}
