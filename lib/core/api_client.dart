@@ -14,14 +14,22 @@ class ApiException implements Exception {
 
 class ApiClient {
   static String baseUrl = 'http://10.0.2.2:5000';
+  static const _baseUrlOverride = String.fromEnvironment(
+    'BIDVIBE_API_BASE_URL',
+  );
 
   static Future<void> loadConfig() async {
-    final content = await rootBundle.loadString('config/dev.json');
-    final decoded = jsonDecode(content);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('File cấu hình phải là JSON object.');
+    Object? value;
+    if (_baseUrlOverride.trim().isNotEmpty) {
+      value = _baseUrlOverride;
+    } else {
+      final content = await rootBundle.loadString('config/dev.json');
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('File cấu hình phải là JSON object.');
+      }
+      value = decoded['API_BASE_URL'];
     }
-    final value = decoded['API_BASE_URL'];
     if (value is! String || value.trim().isEmpty) {
       throw const FormatException('Thiếu API_BASE_URL trong config/dev.json.');
     }
@@ -56,23 +64,22 @@ class ApiClient {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       };
-      final response =
-          await (verb == 'GET'
-                  ? client.get(uri, headers: headers)
-                  : verb == 'PATCH'
+      final response = await (verb == 'GET'
+              ? client.get(uri, headers: headers)
+              : verb == 'PATCH'
                   ? client.patch(
                       uri,
                       headers: headers,
                       body: body == null ? null : jsonEncode(body),
                     )
                   : verb == 'DELETE'
-                  ? client.delete(uri, headers: headers)
-                  : client.post(
-                      uri,
-                      headers: headers,
-                      body: body == null ? null : jsonEncode(body),
-                    ))
-              .timeout(const Duration(seconds: 20));
+                      ? client.delete(uri, headers: headers)
+                      : client.post(
+                          uri,
+                          headers: headers,
+                          body: body == null ? null : jsonEncode(body),
+                        ))
+          .timeout(const Duration(seconds: 20));
       return _decode(response);
     } on TimeoutException {
       throw const ApiException('TIMEOUT', 'Kết nối quá lâu. Vui lòng thử lại.');
@@ -92,7 +99,8 @@ class ApiClient {
   Future<Map<String, dynamic>> uploadAvatar(
     List<int> bytes,
     String filename,
-  ) => uploadImages([(bytes: bytes, filename: filename)], purpose: 'avatar');
+  ) =>
+      uploadImages([(bytes: bytes, filename: filename)], purpose: 'avatar');
 
   /// Tải 1–8 ảnh lên `/api/uploads/images`; kết quả có `urls` theo đúng thứ tự file.
   Future<Map<String, dynamic>> uploadImages(
@@ -115,8 +123,9 @@ class ApiClient {
         );
       }
       final response = await (() async => http.Response.fromStream(
-        await client.send(request),
-      ))().timeout(const Duration(seconds: 60));
+                await client.send(request),
+              ))()
+          .timeout(const Duration(seconds: 60));
       return _decode(response);
     } on TimeoutException {
       throw const ApiException('TIMEOUT', 'Tải ảnh quá lâu. Vui lòng thử lại.');
