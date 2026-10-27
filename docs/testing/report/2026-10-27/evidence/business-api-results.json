@@ -1,0 +1,314 @@
+{
+  "startedAt": "2026-10-27T15:29:14.837Z",
+  "base": "https://bidvibe-be.onrender.com",
+  "kind": "Business scenario via real HTTP API + Socket.IO; not UI E2E",
+  "fixture": {
+    "title": "E2E_20261027T152915974Z_BusinessFlow",
+    "listingId": "5537",
+    "auctionId": "5506",
+    "endsAt": "2026-10-27T16:29:16.884Z",
+    "depositRequired": 1000,
+    "BIDDER_A_walletBefore": {
+      "balance": 0,
+      "held": 0,
+      "available": 0,
+      "joinBlockedUntil": null
+    },
+    "BIDDER_B_walletBefore": {
+      "balance": 0,
+      "held": 0,
+      "available": 0,
+      "joinBlockedUntil": null
+    }
+  },
+  "results": [
+    {
+      "id": "BIZ-01",
+      "title": "Seller creates a draft",
+      "result": "PASS",
+      "observed": {
+        "listingId": "5537",
+        "status": "draft"
+      },
+      "durationMs": 165
+    },
+    {
+      "id": "NEG-01",
+      "title": "Reject submission without photos",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 400,
+        "errorCode": "PHOTOS_REQUIRED"
+      },
+      "durationMs": 91
+    },
+    {
+      "id": "BIZ-02",
+      "title": "Add photo URL and submit for appraisal",
+      "result": "PASS",
+      "observed": {
+        "status": "pending_appraisal",
+        "photos": 1
+      },
+      "durationMs": 182
+    },
+    {
+      "id": "NEG-02",
+      "title": "Seller cannot approve its listing",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 403,
+        "errorCode": "FORBIDDEN"
+      },
+      "durationMs": 67
+    },
+    {
+      "id": "BIZ-03",
+      "title": "Appraiser reads submitted listing and approves",
+      "result": "PASS",
+      "observed": {
+        "auctionId": "5506",
+        "listingStatus": "live"
+      },
+      "durationMs": 188
+    },
+    {
+      "id": "BIZ-04",
+      "title": "Bidder discovers live auction and exact details",
+      "result": "PASS",
+      "observed": {
+        "auctionId": "5506",
+        "isLive": true,
+        "depositRequired": 1000,
+        "endsAt": "2026-10-27T16:29:16.884Z"
+      },
+      "durationMs": 157
+    },
+    {
+      "id": "NEG-03",
+      "title": "Bid rejected before placing deposit",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 403,
+        "errorCode": "DEPOSIT_REQUIRED"
+      },
+      "durationMs": 163
+    },
+    {
+      "id": "NEG-04",
+      "title": "Zero top-up rejected without changing balance",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 400,
+        "errorCode": "VALIDATION_ERROR"
+      },
+      "durationMs": 212
+    },
+    {
+      "id": "BIZ-TOPUP-BIDDER_A",
+      "title": "BIDDER_A simulated top-up and ledger",
+      "result": "PASS",
+      "observed": {
+        "before": {
+          "balance": 0,
+          "held": 0,
+          "available": 0,
+          "joinBlockedUntil": null
+        },
+        "after": {
+          "balance": 200000,
+          "held": 0,
+          "available": 200000,
+          "joinBlockedUntil": null
+        },
+        "transactionId": "9513",
+        "amount": 200000
+      },
+      "durationMs": 309
+    },
+    {
+      "id": "BIZ-JOIN-BIDDER_A",
+      "title": "BIDDER_A deposit hold and joined status",
+      "result": "PASS",
+      "observed": {
+        "deposit": 1000,
+        "before": {
+          "balance": 200000,
+          "held": 0,
+          "available": 200000,
+          "joinBlockedUntil": null
+        },
+        "after": {
+          "balance": 199000,
+          "held": 1000,
+          "available": 199000,
+          "joinBlockedUntil": null
+        },
+        "joined": true
+      },
+      "durationMs": 301
+    },
+    {
+      "id": "BIZ-TOPUP-BIDDER_B",
+      "title": "BIDDER_B simulated top-up and ledger",
+      "result": "PASS",
+      "observed": {
+        "before": {
+          "balance": 0,
+          "held": 0,
+          "available": 0,
+          "joinBlockedUntil": null
+        },
+        "after": {
+          "balance": 200000,
+          "held": 0,
+          "available": 200000,
+          "joinBlockedUntil": null
+        },
+        "transactionId": "9515",
+        "amount": 200000
+      },
+      "durationMs": 272
+    },
+    {
+      "id": "BIZ-JOIN-BIDDER_B",
+      "title": "BIDDER_B deposit hold and joined status",
+      "result": "PASS",
+      "observed": {
+        "deposit": 1000,
+        "before": {
+          "balance": 200000,
+          "held": 0,
+          "available": 200000,
+          "joinBlockedUntil": null
+        },
+        "after": {
+          "balance": 199000,
+          "held": 1000,
+          "available": 199000,
+          "joinBlockedUntil": null
+        },
+        "joined": true
+      },
+      "durationMs": 330
+    },
+    {
+      "id": "NEG-05",
+      "title": "Duplicate join rejected without double deposit",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 409,
+        "errorCode": "ALREADY_JOINED"
+      },
+      "durationMs": 202
+    },
+    {
+      "id": "SOCKET-01",
+      "title": "Authenticated Socket.IO connection and auction room",
+      "result": "PASS",
+      "observed": {
+        "connected": true,
+        "auctionId": "5506"
+      },
+      "durationMs": 1228
+    },
+    {
+      "id": "BIZ-BID-A",
+      "title": "Bidder A submits minimum next bid",
+      "result": "PASS",
+      "observed": {
+        "currentPrice": 60000,
+        "bidCount": 1,
+        "leading": true
+      },
+      "durationMs": 226
+    },
+    {
+      "id": "NEG-06",
+      "title": "Current leader cannot outbid itself",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 409,
+        "errorCode": "ALREADY_LEADING"
+      },
+      "durationMs": 151
+    },
+    {
+      "id": "NEG-07",
+      "title": "Below-minimum bid rejected",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 400,
+        "errorCode": "BID_TOO_LOW"
+      },
+      "durationMs": 148
+    },
+    {
+      "id": "BIZ-BID-B",
+      "title": "Bidder B outbids A; both viewer states agree",
+      "result": "PASS",
+      "observed": {
+        "currentPrice": 110000,
+        "bidCount": 2,
+        "aLeading": false,
+        "bLeading": true
+      },
+      "durationMs": 323
+    },
+    {
+      "id": "SOCKET-02",
+      "title": "Socket receives exact bid updates for this auction",
+      "result": "PASS",
+      "observed": {
+        "events": [
+          {
+            "auctionId": "5506",
+            "currentPrice": 60000,
+            "bidCount": 1,
+            "reason": "bid"
+          },
+          {
+            "auctionId": "5506",
+            "currentPrice": 110000,
+            "bidCount": 2,
+            "reason": "bid"
+          }
+        ]
+      },
+      "durationMs": 64
+    },
+    {
+      "id": "BIZ-NOTIFICATION",
+      "title": "Outbid notification references test auction",
+      "result": "PASS",
+      "observed": {
+        "notificationId": "12146",
+        "type": "outbid",
+        "auctionId": "5506"
+      },
+      "durationMs": 62
+    },
+    {
+      "id": "NEG-08",
+      "title": "Already-live listing cannot be appraised again",
+      "result": "PASS",
+      "observed": {
+        "httpStatus": 409,
+        "errorCode": "INVALID_STATE"
+      },
+      "durationMs": 61
+    }
+  ],
+  "effects": [
+    "Created draft listing 5537",
+    "Approved listing 5537; auction 5506 opened",
+    "BIDDER_A: simulated top-up +200000 VND",
+    "BIDDER_A: held deposit 1000 VND for auction 5506",
+    "BIDDER_B: simulated top-up +200000 VND",
+    "BIDDER_B: held deposit 1000 VND for auction 5506",
+    "Bidder A placed 60000 VND",
+    "Bidder B placed 110000 VND"
+  ],
+  "completedAt": "2026-10-27T15:29:23.142Z",
+  "finishedAt": "2026-10-27T15:29:23.143Z"
+}
