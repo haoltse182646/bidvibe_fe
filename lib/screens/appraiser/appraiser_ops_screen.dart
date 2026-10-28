@@ -7,6 +7,14 @@ import '../../features/ops/ops_repository.dart';
 import '../../store.dart';
 import '../../theme.dart';
 
+String _listingStatusLabel(dynamic value) => switch (value) {
+  'pending_appraisal' => 'Chờ thẩm định',
+  'needs_info' => 'Cần bổ sung',
+  'live' => 'Đang đấu giá',
+  'rejected' => 'Đã từ chối',
+  _ => value is String && value.isNotEmpty ? value : '—',
+};
+
 OpsRepository _ops(BuildContext context) =>
     OpsRepository(
       (context.read<AppStore>() as RemoteAppStore).api,
@@ -242,7 +250,7 @@ class _AppraiserOpsDetailScreenState extends State<AppraiserOpsDetailScreen> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            Text('${listing['category'] ?? 'Tin đăng'} · ${listing['status'] ?? '—'}', style: const TextStyle(color: AppColors.muted)),
+            Text('${listing['category'] == null ? 'Tin đăng' : categoryLabelOrRaw('${listing['category']}')} · ${_listingStatusLabel(listing['status'])}', style: const TextStyle(color: AppColors.muted)),
             const SizedBox(height: 4),
             Text('${listing['title'] ?? 'Tin đăng'}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
