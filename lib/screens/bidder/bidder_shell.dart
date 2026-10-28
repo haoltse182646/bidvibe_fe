@@ -107,6 +107,8 @@ class _BidderShellState extends State<BidderShell> with WidgetsBindingObserver {
         _messenger?.showSnackBar(
           SnackBar(
             content: Text(toast.title),
+            // Mặc định SnackBar có nút hành động không tự tắt và che thanh nút dưới của màn hình.
+            persist: false,
             action: SnackBarAction(label: 'Xem', onPressed: () => _open(toast)),
           ),
         );
