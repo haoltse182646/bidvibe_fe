@@ -46,7 +46,9 @@ class _AppraiserOpsScreenState extends State<AppraiserOpsScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).appraisalQueue(status: status);
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -216,7 +218,9 @@ class _AppraiserOpsDetailScreenState extends State<AppraiserOpsDetailScreen> {
 
   Future<void> _retryDetail() async {
     final next = _ops(context).appraisalDetail(widget.listingId);
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}

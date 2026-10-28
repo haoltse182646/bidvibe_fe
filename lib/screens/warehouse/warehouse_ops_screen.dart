@@ -52,7 +52,9 @@ class _WarehouseOpsScreenState extends State<WarehouseOpsScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).warehouseOrders();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -177,7 +179,9 @@ class _WarehouseOpsDetailScreenState extends State<WarehouseOpsDetailScreen> {
 
   Future<void> _retryOrder() async {
     final next = _ops(context).warehouseOrder(widget.orderId);
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}

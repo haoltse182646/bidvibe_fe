@@ -44,7 +44,9 @@ class _AdminOpsFlagsScreenState extends State<AdminOpsFlagsScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).flags();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -166,7 +168,9 @@ class _AdminOpsFlagDetailScreenState extends State<AdminOpsFlagDetailScreen> {
 
   Future<void> _retryFlag() async {
     final next = _ops(context).flag(widget.flagId);
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -247,7 +251,9 @@ class _AdminOpsDisputesScreenState extends State<AdminOpsDisputesScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).disputes(status: status == 'all' ? null : status);
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
