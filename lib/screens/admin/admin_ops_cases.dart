@@ -7,6 +7,7 @@ import '../../features/ops/ops_repository.dart';
 import '../../features/profile/profile_repository.dart';
 import '../../store.dart';
 import '../../theme.dart';
+import '../orders/order_labels.dart';
 
 OpsRepository _ops(BuildContext context) =>
     OpsRepository(
@@ -19,6 +20,45 @@ Map<String, dynamic> _map(dynamic value) =>
 
 String _string(dynamic value, [String fallback = '—']) =>
     value is String && value.isNotEmpty ? value : fallback;
+
+String _when(dynamic value) =>
+    orderTime(value is String ? DateTime.tryParse(value)?.toLocal() : null);
+
+String _severityLabel(dynamic value) => switch (value) {
+  'high' => 'Cao',
+  'medium' => 'Trung bình',
+  'low' => 'Thấp',
+  _ => _string(value),
+};
+
+String _flagStatusLabel(dynamic value) => switch (value) {
+  'pending' => 'Chờ xử lý',
+  'paused' => 'Đã tạm dừng',
+  'verify' => 'Chờ xác minh',
+  'safe' => 'An toàn',
+  'terminated' => 'Đã chấm dứt',
+  _ => _string(value),
+};
+
+String _sourceLabel(dynamic value) => switch (value) {
+  'bidder' => 'Người mua',
+  'seller' => 'Người bán',
+  'warehouse' => 'Kho vận',
+  _ => _string(value),
+};
+
+String _disputeStatusLabel(dynamic value) => switch (value) {
+  'open' => 'Đang mở',
+  'resolved' => 'Đã xử lý',
+  _ => _string(value),
+};
+
+String _resolutionLabel(dynamic value) => switch (value) {
+  'refund' => 'Hoàn tiền người mua',
+  'keep' => 'Giữ nguyên, giải ngân người bán',
+  'none' => 'Chưa có',
+  _ => _string(value),
+};
 
 String _money(dynamic value) {
   final digits = (value is num ? value.toInt() : 0).toString();
@@ -87,7 +127,7 @@ class _AdminOpsFlagsScreenState extends State<AdminOpsFlagsScreen> {
             for (final flag in rows)
               _CaseTile(
                 title: _string(_map(flag['auction'])['title'], 'Phiên #${_map(flag['auction'])['id'] ?? '—'}'),
-                subtitle: '${_string(flag['reason'])} · ${_string(flag['severity'])} · ${_string(flag['status'])}',
+                subtitle: '${_string(flag['reason'])} · ${_severityLabel(flag['severity'])} · ${_flagStatusLabel(flag['status'])}',
                 detail: 'Độ tin cậy ${flag['confidence'] ?? 0}%',
                 onTap: () async {
                   await Navigator.of(context).push<void>(MaterialPageRoute(
@@ -193,7 +233,7 @@ class _AdminOpsFlagDetailScreenState extends State<AdminOpsFlagDetailScreen> {
           children: [
             Text(_string(auction['title']), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            Text('Phiên #${auction['id'] ?? '—'} · ${flag['severity'] ?? '—'} · ${flag['status'] ?? '—'}'),
+            Text('Phiên #${auction['id'] ?? '—'} · ${_severityLabel(flag['severity'])} · ${_flagStatusLabel(flag['status'])}'),
             const SizedBox(height: 14),
             _InfoSection(title: 'Lý do', values: {
               'Mô tả': flag['reason'],
@@ -292,7 +332,7 @@ class _AdminOpsDisputesScreenState extends State<AdminOpsDisputesScreen> {
               _CaseTile(
                 title: _string(dispute['itemTitle'], 'Đơn #${dispute['orderId'] ?? '—'}'),
                 subtitle: _string(dispute['title']),
-                detail: '${_string(dispute['source'])} · ${_string(dispute['status'])} · ${_money(dispute['escrowAmount'])}',
+                detail: '${_sourceLabel(dispute['source'])} · ${_disputeStatusLabel(dispute['status'])} · ${_money(dispute['escrowAmount'])}',
                 onTap: () async {
                   await Navigator.of(context).push<void>(MaterialPageRoute(
                     builder: (_) => AdminOpsDisputeDetailScreen(dispute: dispute),
@@ -440,19 +480,19 @@ class _AdminOpsDisputeDetailScreenState extends State<AdminOpsDisputeDetailScree
         children: [
           Text(_string(dispute['itemTitle']), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text('Tranh chấp #${dispute['id']} · Đơn #${dispute['orderId']} · ${_string(dispute['source'])}'),
+          Text('Tranh chấp #${dispute['id']} · Đơn #${dispute['orderId']} · ${_sourceLabel(dispute['source'])}'),
           const SizedBox(height: 14),
           _InfoSection(title: 'Báo cáo', values: {
             'Tiêu đề': dispute['title'],
-            'Trạng thái': dispute['status'],
+            'Trạng thái': _disputeStatusLabel(dispute['status']),
             'Số tiền ký quỹ': _money(dispute['escrowAmount']),
             'Giá chốt': _money(dispute['finalPrice']),
-            'Kết quả': dispute['resolution'],
+            'Kết quả': _resolutionLabel(dispute['resolution']),
             'Người xử lý': dispute['resolvedBy'],
           }),
           const SizedBox(height: 12),
           _InfoSection(title: 'Diễn biến', values: {
-            for (var i = 0; i < timeline.length; i++) 'Mốc ${i + 1} · ${timeline[i]['at'] ?? '—'}': timeline[i]['note'] ?? '—',
+            for (var i = 0; i < timeline.length; i++) 'Mốc ${i + 1} · ${_when(timeline[i]['at'])}': timeline[i]['note'] ?? '—',
           }),
           if (photos.isNotEmpty) ...[
             const SizedBox(height: 12),
