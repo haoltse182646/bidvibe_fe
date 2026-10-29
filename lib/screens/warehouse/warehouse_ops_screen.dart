@@ -6,6 +6,7 @@ import '../../core/remote_app_store.dart';
 import '../../features/ops/ops_repository.dart';
 import '../../store.dart';
 import '../../theme.dart';
+import '../orders/order_labels.dart';
 
 OpsRepository _ops(BuildContext context) =>
     OpsRepository(
@@ -15,6 +16,23 @@ OpsRepository _ops(BuildContext context) =>
 
 Map<String, dynamic> _map(dynamic value) =>
     value is Map ? Map<String, dynamic>.from(value) : const {};
+
+String _paymentLabel(dynamic value) => switch (value) {
+  'paid' => 'Đã thanh toán',
+  'awaiting_payment' => 'Chờ thanh toán',
+  'expired' => 'Quá hạn thanh toán',
+  _ => value is String && value.isNotEmpty ? value : '—',
+};
+
+String _inspectionLabel(dynamic value) => switch (value) {
+  'match' => 'Khớp mô tả',
+  'mismatch' => 'Không khớp mô tả',
+  _ => value is String && value.isNotEmpty ? value : '—',
+};
+
+/// Giờ ISO của BE -> "HH:mm dd/MM/yyyy" theo giờ máy.
+String _eventTime(dynamic value) =>
+    orderTime(value is String ? DateTime.tryParse(value)?.toLocal() : null);
 
 String _str(dynamic value, [String fallback = '—']) =>
     value is String && value.isNotEmpty ? value : fallback;
@@ -52,7 +70,9 @@ class _WarehouseOpsScreenState extends State<WarehouseOpsScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).warehouseOrders();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -177,7 +197,9 @@ class _WarehouseOpsDetailScreenState extends State<WarehouseOpsDetailScreen> {
 
   Future<void> _retryOrder() async {
     final next = _ops(context).warehouseOrder(widget.orderId);
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -249,7 +271,7 @@ class _WarehouseOpsDetailScreenState extends State<WarehouseOpsDetailScreen> {
             _WarehousePanel(title: 'Người bán', values: {
               'Tên gian hàng': seller['storeName'],
               'Đơn hàng': order['id'],
-              'Trạng thái thanh toán': order['paymentStatus'],
+              'Trạng thái thanh toán': _paymentLabel(order['paymentStatus']),
             }),
             const SizedBox(height: 10),
             _WarehousePanel(title: 'Người nhận và địa chỉ', values: {
@@ -260,7 +282,7 @@ class _WarehouseOpsDetailScreenState extends State<WarehouseOpsDetailScreen> {
             if (warehouse.isNotEmpty || shipment.isNotEmpty) ...[
               const SizedBox(height: 10),
               _WarehousePanel(title: 'Thông tin xử lý', values: {
-                'Kết quả kiểm định': warehouse['inspectionResult'],
+                'Kết quả kiểm định': _inspectionLabel(warehouse['inspectionResult']),
                 'Ghi chú kiểm định': warehouse['inspectionNotes'],
                 'Đơn vị vận chuyển': shipment['carrier'],
                 'Mã vận đơn': shipment['trackingCode'],
@@ -269,7 +291,7 @@ class _WarehouseOpsDetailScreenState extends State<WarehouseOpsDetailScreen> {
             if (events.isNotEmpty) ...[
               const SizedBox(height: 10),
               _WarehousePanel(title: 'Lịch sử', values: {
-                for (var index = 0; index < events.length; index++) '${events[index]['step'] ?? 'Bước ${index + 1}'} · ${events[index]['at'] ?? ''}': events[index]['note'] ?? '—',
+                for (var index = 0; index < events.length; index++) '${eventLabel('${events[index]['step'] ?? 'Bước ${index + 1}'}')} · ${_eventTime(events[index]['at'])}': events[index]['note'] ?? '—',
               }),
             ],
             const SizedBox(height: 16),

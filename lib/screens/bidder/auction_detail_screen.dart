@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/remote_app_store.dart';
 import '../../core/api_client.dart';
+import '../../theme.dart';
 import '../../features/orders/order_repository.dart';
 import '../orders/order_detail_screen.dart';
 import '../../features/auctions/auction_repository.dart';
@@ -337,7 +338,7 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen>
       _section('Thông tin sản phẩm', [
         Text('${data['description'] ?? 'Chưa có mô tả'}'),
         _row('Tình trạng', '${data['condition'] ?? 'Chưa có'}'),
-        _row('Danh mục', '${data['category'] ?? ''}'),
+        _row('Danh mục', categoryLabelOrRaw('${data['category'] ?? ''}')),
         _row('Mã phiên', '${data['id']}'),
       ]),
       _section('Người bán', [

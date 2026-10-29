@@ -137,6 +137,10 @@ IconData categoryIcon(String cat) {
   }
 }
 
+/// Nhãn danh mục; mã lạ thì giữ nguyên để không hiện sai thành "Khác".
+String categoryLabelOrRaw(String cat) =>
+    const {'shoes', 'elec', 'antique'}.contains(cat) ? labelForCategory(cat) : cat;
+
 String labelForCategory(String cat) {
   switch (cat) {
     case 'shoes':
