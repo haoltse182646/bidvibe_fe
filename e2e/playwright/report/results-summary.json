@@ -1,0 +1,420 @@
+{
+  "generatedAt": "2026-10-30T17:16:54.444Z",
+  "method": "Latest executed outcome per unique ID across staged runs; not a single green run",
+  "total": 30,
+  "passed": 19,
+  "failed": 11,
+  "cases": [
+    {
+      "id": "WEB-READY-01",
+      "title": "WEB-READY-01: Flutter Web exposes an accessible login form",
+      "file": "01-browser-readiness.spec.ts",
+      "line": 3,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:09:57.304Z",
+      "status": "passed",
+      "durationMs": 1599,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-AUTH-01",
+      "title": "PW-AUTH-01: BIDDER_A signs in, reaches its role and signs out",
+      "file": "02-auth-roles.spec.ts",
+      "line": 5,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:09:59.176Z",
+      "status": "passed",
+      "durationMs": 3744,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-AUTH-02",
+      "title": "PW-AUTH-02: BIDDER_B signs in, reaches its role and signs out",
+      "file": "02-auth-roles.spec.ts",
+      "line": 5,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:10:02.933Z",
+      "status": "passed",
+      "durationMs": 3615,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-AUTH-03",
+      "title": "PW-AUTH-03: SELLER signs in, reaches its role and signs out",
+      "file": "02-auth-roles.spec.ts",
+      "line": 5,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:10:06.563Z",
+      "status": "passed",
+      "durationMs": 3435,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-AUTH-04",
+      "title": "PW-AUTH-04: APPRAISER signs in, reaches its role and signs out",
+      "file": "02-auth-roles.spec.ts",
+      "line": 5,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:10:10.012Z",
+      "status": "passed",
+      "durationMs": 3421,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-AUTH-05",
+      "title": "PW-AUTH-05: WAREHOUSE signs in, reaches its role and signs out",
+      "file": "02-auth-roles.spec.ts",
+      "line": 5,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:10:13.451Z",
+      "status": "passed",
+      "durationMs": 3370,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-AUTH-06",
+      "title": "PW-AUTH-06: ADMIN signs in, reaches its role and signs out",
+      "file": "02-auth-roles.spec.ts",
+      "line": 5,
+      "run": "2026-10-30T17-09-56-255Z-e3a482",
+      "startTime": "2026-10-30T17:10:16.843Z",
+      "status": "passed",
+      "durationMs": 3345,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "PW-LIST-01",
+      "title": "PW-LIST-01: seller uploads a real file and submits a new listing",
+      "file": "03-registration-listing.spec.ts",
+      "line": 26,
+      "run": "2026-10-30-listing-02",
+      "startTime": "2026-10-30T16:28:23.508Z",
+      "status": "passed",
+      "durationMs": 5859,
+      "error": "",
+      "evidence": [
+        "PW-LIST-01-submitted-listing.json"
+      ]
+    },
+    {
+      "id": "PW-REG-01",
+      "title": "PW-REG-01: register a fresh bidder through the UI",
+      "file": "03-registration-listing.spec.ts",
+      "line": 8,
+      "run": "2026-10-30-listing-01",
+      "startTime": "2026-10-30T16:25:37.677Z",
+      "status": "passed",
+      "durationMs": 3484,
+      "error": "",
+      "evidence": [
+        "PW-REG-01-registration-result.json"
+      ]
+    },
+    {
+      "id": "PW-APP-01",
+      "title": "PW-APP-01: appraiser approves the new listing and returns to the queue without runtime errors",
+      "file": "04-appraisal.spec.ts",
+      "line": 6,
+      "run": "2026-10-30-appraisal-01",
+      "startTime": "2026-10-30T16:29:01.985Z",
+      "status": "failed",
+      "durationMs": 4344,
+      "error": "Error: Frontend must refresh the queue without a Flutter exception\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 3\n\n- Array []\n+ Array [\n+   \"Error\",\n+ ]",
+      "evidence": [
+        "PW-APP-01-approval-backend-result.json",
+        "PW-APP-01-runtime-errors.json"
+      ]
+    },
+    {
+      "id": "PW-BID-01",
+      "title": "PW-BID-01: two isolated bidders top up, deposit, compete in real time, and receive the correct winner",
+      "file": "05-bidding-winner.spec.ts",
+      "line": 38,
+      "run": "2026-10-30-bidding-03",
+      "startTime": "2026-10-30T16:42:24.481Z",
+      "status": "passed",
+      "durationMs": 32418,
+      "error": "",
+      "evidence": [
+        "PW-BID-01-wallet-topups.json",
+        "PW-BID-01-deposits.json",
+        "PW-BID-01-competing-bids.json",
+        "PW-BID-01-fixture-time-adjustment.json",
+        "PW-BID-01-winner-order.json",
+        "PW-BID-01-loser-deposit-refund.json"
+      ]
+    },
+    {
+      "id": "PW-PAY-01",
+      "title": "PW-PAY-01: winner creates/selects an address and pays the order from the wallet",
+      "file": "06-payment.spec.ts",
+      "line": 6,
+      "run": "2026-10-30-payment-02",
+      "startTime": "2026-10-30T16:47:53.051Z",
+      "status": "passed",
+      "durationMs": 12022,
+      "error": "",
+      "evidence": [
+        "PW-PAY-01-wallet-payment.json"
+      ]
+    },
+    {
+      "id": "PW-SHIP-01",
+      "title": "PW-SHIP-01: seller marks only the test order as sent to the warehouse",
+      "file": "07-seller-shipment.spec.ts",
+      "line": 6,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:03.049Z",
+      "status": "passed",
+      "durationMs": 4481,
+      "error": "",
+      "evidence": [
+        "PW-SHIP-01-seller-shipment.json"
+      ]
+    },
+    {
+      "id": "PW-WH-01",
+      "title": "PW-WH-01: warehouse receive updates the order without a misleading UI error",
+      "file": "08-warehouse.spec.ts",
+      "line": 14,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:07.766Z",
+      "status": "failed",
+      "durationMs": 4364,
+      "error": "Error: A successful warehouse update must not display a failure message\n\nexpect(received).not.toContain(expected) // indexOf\n\nExpected substring: not \"Không cập nhật được đơn hàng.\"\nReceived string:        \"- text: Không cập nhật được đơn hàng.\n- button \\\"Back\\\"\n- heading \\\"Chi tiết đơn kho\\\" [level=2]\n- group:\n  - text: BV-301026-1754 E2E_PW_20261030_1793377706403_Main\n  - checkbox \\\"Đang kiểm định\\\"\n  - text: Người bán Tên gian hàng Đồ cổ An Liễng Đơn hàng 1754 Trạng thái thanh toán paid Người nhận và địa chỉ Người nhận E2E Playwright Bidder B Địa chỉ E2E test only - 1 Test Street, Ho Chi Minh Thông tin xử lý Kết quả kiểm định\n  - radiogroup:\n    - radio \\\"Khớp mô tả\\\" [checked]\n    - radio \\\"Không khớp, mở tranh chấp\\\"\n  - button \\\"Lưu kết quả kiểm định\\\"\n- text: Không cập nhật được đơn hàng.\"",
+      "evidence": [
+        "PW-WH-01-warehouse-transition.json"
+      ]
+    },
+    {
+      "id": "PW-WH-02",
+      "title": "PW-WH-02: warehouse inspect updates the order without a misleading UI error",
+      "file": "08-warehouse.spec.ts",
+      "line": 14,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:12.809Z",
+      "status": "failed",
+      "durationMs": 4615,
+      "error": "Error: A successful warehouse update must not display a failure message\n\nexpect(received).not.toContain(expected) // indexOf\n\nExpected substring: not \"Không cập nhật được đơn hàng.\"\nReceived string:        \"- text: Không cập nhật được đơn hàng.\n- button \\\"Back\\\"\n- heading \\\"Chi tiết đơn kho\\\" [level=2]\n- group:\n  - text: BV-301026-1754 E2E_PW_20261030_1793377706403_Main\n  - checkbox \\\"Đạt kiểm định\\\"\n  - text: Người bán Tên gian hàng Đồ cổ An Liễng Đơn hàng 1754 Trạng thái thanh toán paid Người nhận và địa chỉ Người nhận E2E Playwright Bidder B Địa chỉ E2E test only - 1 Test Street, Ho Chi Minh Thông tin xử lý Kết quả kiểm định match\n  - textbox \\\"Ghi chú đóng gói (không bắt buộc)\\\"\n  - text: 500 characters remaining\n  - button \\\"Xác nhận đóng gói\\\"\n- text: Không cập nhật được đơn hàng.\"",
+      "evidence": [
+        "PW-WH-02-warehouse-transition.json"
+      ]
+    },
+    {
+      "id": "PW-WH-03",
+      "title": "PW-WH-03: warehouse pack updates the order without a misleading UI error",
+      "file": "08-warehouse.spec.ts",
+      "line": 14,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:18.232Z",
+      "status": "failed",
+      "durationMs": 4721,
+      "error": "Error: A successful warehouse update must not display a failure message\n\nexpect(received).not.toContain(expected) // indexOf\n\nExpected substring: not \"Không cập nhật được đơn hàng.\"\nReceived string:        \"- text: Không cập nhật được đơn hàng.\n- button \\\"Back\\\"\n- heading \\\"Chi tiết đơn kho\\\" [level=2]\n- group:\n  - text: BV-301026-1754 E2E_PW_20261030_1793377706403_Main\n  - checkbox \\\"Đã đóng gói\\\"\n  - text: Người bán Tên gian hàng Đồ cổ An Liễng Đơn hàng 1754 Trạng thái thanh toán paid Người nhận và địa chỉ Người nhận E2E Playwright Bidder B Địa chỉ E2E test only - 1 Test Street, Ho Chi Minh Thông tin xử lý Kết quả kiểm định match Lịch sử packing · 2026-10-30T16:50:22.799Z Đã đóng gói tại kho BidVibe\n  - button \\\"Gửi cho đơn vị vận chuyển\\\"\n- text: Không cập nhật được đơn hàng.\"",
+      "evidence": [
+        "PW-WH-03-warehouse-transition.json"
+      ]
+    },
+    {
+      "id": "PW-WH-04",
+      "title": "PW-WH-04: warehouse ship updates the order without a misleading UI error",
+      "file": "08-warehouse.spec.ts",
+      "line": 14,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:23.674Z",
+      "status": "failed",
+      "durationMs": 4818,
+      "error": "Error: A successful warehouse update must not display a failure message\n\nexpect(received).not.toContain(expected) // indexOf\n\nExpected substring: not \"Không cập nhật được đơn hàng.\"\nReceived string:        \"- text: Không cập nhật được đơn hàng.\n- button \\\"Back\\\"\n- heading \\\"Chi tiết đơn kho\\\" [level=2]\n- group:\n  - text: BV-301026-1754 E2E_PW_20261030_1793377706403_Main\n  - checkbox \\\"Đang vận chuyển\\\"\n  - text: Người bán Tên gian hàng Đồ cổ An Liễng Đơn hàng 1754 Trạng thái thanh toán paid Người nhận và địa chỉ Người nhận E2E Playwright Bidder B Địa chỉ E2E test only - 1 Test Street, Ho Chi Minh Thông tin xử lý Kết quả kiểm định match Mã vận đơn E2E-PW-1754 Lịch sử packing · 2026-10-30T16:50:22.799Z Đã đóng gói tại kho BidVibe shipped · 2026-10-30T16:50:28.397Z Bàn giao E2E simulated carrier · mã vận đơn E2E-PW-1754\n  - button \\\"Xác nhận đã giao\\\"\n- text: Không cập nhật được đơn hàng.\"",
+      "evidence": [
+        "PW-WH-04-warehouse-transition.json"
+      ]
+    },
+    {
+      "id": "PW-WH-05",
+      "title": "PW-WH-05: warehouse deliver updates the order without a misleading UI error",
+      "file": "08-warehouse.spec.ts",
+      "line": 14,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:29.250Z",
+      "status": "failed",
+      "durationMs": 4537,
+      "error": "Error: A successful warehouse update must not display a failure message\n\nexpect(received).not.toContain(expected) // indexOf\n\nExpected substring: not \"Không cập nhật được đơn hàng.\"\nReceived string:        \"- text: Không cập nhật được đơn hàng.\n- button \\\"Back\\\"\n- heading \\\"Chi tiết đơn kho\\\" [level=2]\n- group:\n  - text: BV-301026-1754 E2E_PW_20261030_1793377706403_Main\n  - checkbox \\\"Đã giao\\\"\n  - text: Người bán Tên gian hàng Đồ cổ An Liễng Đơn hàng 1754 Trạng thái thanh toán paid Người nhận và địa chỉ Người nhận E2E Playwright Bidder B Địa chỉ E2E test only - 1 Test Street, Ho Chi Minh Thông tin xử lý Kết quả kiểm định match Mã vận đơn E2E-PW-1754 Lịch sử packing · 2026-10-30T16:50:22.799Z Đã đóng gói tại kho BidVibe shipped · 2026-10-30T16:50:28.397Z Bàn giao E2E simulated carrier · mã vận đơn E2E-PW-1754 delivered · 2026-10-30T16:50:33.702Z Giao hàng thành công Không còn thao tác kho cho đơn này.\n- text: Không cập nhật được đơn hàng.\"",
+      "evidence": [
+        "PW-WH-05-warehouse-transition.json"
+      ]
+    },
+    {
+      "id": "PW-DELIVERY-01",
+      "title": "PW-DELIVERY-01: buyer confirms receipt and verifies final order/payout status",
+      "file": "09-confirm-delivery.spec.ts",
+      "line": 5,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:34.594Z",
+      "status": "passed",
+      "durationMs": 6187,
+      "error": "",
+      "evidence": [
+        "PW-DELIVERY-01-buyer-receipt.json"
+      ]
+    },
+    {
+      "id": "PW-ADMIN-01",
+      "title": "PW-ADMIN-01: administrator opens dashboard, flags, disputes, report and accounts",
+      "file": "10-admin-readonly.spec.ts",
+      "line": 6,
+      "run": "2026-10-30-fulfilment-01",
+      "startTime": "2026-10-30T16:50:41.050Z",
+      "status": "passed",
+      "durationMs": 4652,
+      "error": "",
+      "evidence": []
+    },
+    {
+      "id": "SETUP-ADM-01",
+      "title": "SETUP-ADM-01: API prepares a separate live fixture for moderation/dispute UI tests",
+      "file": "11-admin-fixture.spec.ts",
+      "line": 4,
+      "run": "2026-10-30-moderation-01",
+      "startTime": "2026-10-30T16:53:56.489Z",
+      "status": "passed",
+      "durationMs": 894,
+      "error": "",
+      "evidence": [
+        "SETUP-ADM-01-API-fixture-setup.json"
+      ]
+    },
+    {
+      "id": "PW-MOD-pause",
+      "title": "PW-MOD-pause: admin pause action and queue refresh",
+      "file": "12-report-moderation.spec.ts",
+      "line": 21,
+      "run": "2026-10-30-moderation-01",
+      "startTime": "2026-10-30T16:54:04.072Z",
+      "status": "failed",
+      "durationMs": 4760,
+      "error": "Error: Admin queue refresh must not throw\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 13\n\n- Array []\n+ Array [\n+   \"Error\n+     at Object.wrapException (http://localhost:8886/main.dart.js:9149:47)\n+     at State_setState_closure0.call$0 (http://localhost:8886/main.dart.js:225274:17)\n+     at _AdminOpsFlagsScreenState.setState$1 (http://localhost:8886/main.dart.js:225226:71)\n+     at http://localhost:8886/main.dart.js:115565:27\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\n+     at _wrapJsFunctionForAsync_closure.call$2 (http://localhost:8886/main.dart.js:94330:12)\n+     at Object._asyncStartSync (http://localhost:8886/main.dart.js:12228:20)\n+     at _AdminOpsFlagsScreenState._admin_ops_cases$_refresh$0 (http://localhost:8886/main.dart.js:115596:16)\n+     at http://localhost:8886/main.dart.js:115732:39\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\",\n+ ]",
+      "evidence": [
+        "PW-MOD-pause-moderation-result.json"
+      ]
+    },
+    {
+      "id": "PW-MOD-safe",
+      "title": "PW-MOD-safe: admin safe action and queue refresh",
+      "file": "12-report-moderation.spec.ts",
+      "line": 21,
+      "run": "2026-10-30-moderation-01",
+      "startTime": "2026-10-30T16:54:14.938Z",
+      "status": "failed",
+      "durationMs": 4705,
+      "error": "Error: Admin queue refresh must not throw\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 13\n\n- Array []\n+ Array [\n+   \"Error\n+     at Object.wrapException (http://localhost:8886/main.dart.js:9149:47)\n+     at State_setState_closure0.call$0 (http://localhost:8886/main.dart.js:225274:17)\n+     at _AdminOpsFlagsScreenState.setState$1 (http://localhost:8886/main.dart.js:225226:71)\n+     at http://localhost:8886/main.dart.js:115565:27\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\n+     at _wrapJsFunctionForAsync_closure.call$2 (http://localhost:8886/main.dart.js:94330:12)\n+     at Object._asyncStartSync (http://localhost:8886/main.dart.js:12228:20)\n+     at _AdminOpsFlagsScreenState._admin_ops_cases$_refresh$0 (http://localhost:8886/main.dart.js:115596:16)\n+     at http://localhost:8886/main.dart.js:115732:39\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\",\n+ ]",
+      "evidence": [
+        "PW-MOD-safe-moderation-result.json"
+      ]
+    },
+    {
+      "id": "PW-MOD-verify",
+      "title": "PW-MOD-verify: admin verify action and queue refresh",
+      "file": "12-report-moderation.spec.ts",
+      "line": 21,
+      "run": "2026-10-30-moderation-01",
+      "startTime": "2026-10-30T16:54:09.376Z",
+      "status": "failed",
+      "durationMs": 4832,
+      "error": "Error: Admin queue refresh must not throw\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 13\n\n- Array []\n+ Array [\n+   \"Error\n+     at Object.wrapException (http://localhost:8886/main.dart.js:9149:47)\n+     at State_setState_closure0.call$0 (http://localhost:8886/main.dart.js:225274:17)\n+     at _AdminOpsFlagsScreenState.setState$1 (http://localhost:8886/main.dart.js:225226:71)\n+     at http://localhost:8886/main.dart.js:115565:27\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\n+     at _wrapJsFunctionForAsync_closure.call$2 (http://localhost:8886/main.dart.js:94330:12)\n+     at Object._asyncStartSync (http://localhost:8886/main.dart.js:12228:20)\n+     at _AdminOpsFlagsScreenState._admin_ops_cases$_refresh$0 (http://localhost:8886/main.dart.js:115596:16)\n+     at http://localhost:8886/main.dart.js:115732:39\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\",\n+ ]",
+      "evidence": [
+        "PW-MOD-verify-moderation-result.json"
+      ]
+    },
+    {
+      "id": "PW-REPORT-01",
+      "title": "PW-REPORT-01: bidder reports only the new admin test auction through the UI",
+      "file": "12-report-moderation.spec.ts",
+      "line": 6,
+      "run": "2026-10-30-moderation-01",
+      "startTime": "2026-10-30T16:53:57.420Z",
+      "status": "passed",
+      "durationMs": 6436,
+      "error": "",
+      "evidence": [
+        "PW-REPORT-01-report-created.json"
+      ]
+    },
+    {
+      "id": "PW-BLOCK-01",
+      "title": "PW-BLOCK-01: previously restricted bidder receives the correct reason when joining",
+      "file": "13-blocked-bidder.spec.ts",
+      "line": 5,
+      "run": "2026-10-30-dispute-01",
+      "startTime": "2026-10-30T16:58:36.483Z",
+      "status": "failed",
+      "durationMs": 9113,
+      "error": "Error: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"Bạn tạm thời không được tham gia phiên mới vì đã bỏ thanh toán nhiều lần. Bạn có thể tham gia lại từ 22:39 05/11/2026 (giờ Việt Nam).\"\nReceived string:    \"- button \\\"Back\\\"\n- 'heading \\\"Phiên #5518\\\" [level=2]'\n- button \\\"Báo cáo phiên\\\"\n- button \\\"Làm mới phiên\\\"\n- group:\n  - text: Thông tin sản phẩm Dedicated Playwright moderation/dispute fixture Tình trạng E2E test only Danh mục shoes Mã phiên 5518 Người bán Gian hàng Đồ cổ An Liễng Đánh giá Chưa có Giá và thời gian Giá khởi điểm 10.000 đ Giá hiện tại 10.000 đ Bước giá tối thiểu 50.000 đ Giá đặt tiếp tối thiểu 60.000 đ Tổng lượt đặt giá 0 Bắt đầu 30/10/2026 23:53:57 Kết thúc 31/10/2026 00:54:02 Thời gian còn lại 0:55:19 Đang kết nối thời gian thực. Tham gia và tiền cọc Cọc yêu cầu 1.000 đ Đã tham gia Chưa Ví đủ cọc Đủ\n  - 'group \\\"Đặt cọc tham gia Cọc yêu cầu: 1.000 đ Chưa xác định được kết quả đặt cọc. Tải lại trạng thái và kiểm tra ví trước khi gửi lại. Đặt cọc trước khi gửi lượt đặt giá. Cần tải lại dữ liệu trước khi tiếp tục thao tác.\\\"':\n    - button \\\"Đặt cọc tham gia\\\" [disabled]\n    - button \\\"Mở ví / Nạp tiền\\\"\n    - button \\\"Tải lại trạng thái đặt cọc\\\"\n  - 'group \\\"Đặt giá Bạn cần đặt cọc trước khi đặt giá. Giá tối thiểu tiếp theo: 60.000 đ\\\"':\n    - textbox \\\"Giá muốn đặt (VND)\\\" [disabled]\n    - button \\\"Dùng giá tối thiểu\\\" [disabled]\n    - button \\\"Đặt giá\\\" [disabled]\n  - text: 20 lượt đặt giá gần nhất Chưa có lượt đặt giá\"\n\nCall Log:\n- Timeout 5000ms exceeded while waiting on the predicate",
+      "evidence": [
+        "PW-BLOCK-01-known-business-rejection.json"
+      ]
+    },
+    {
+      "id": "SETUP-DISP-01",
+      "title": "SETUP-DISP-01: API closes and pays only the admin fixture for dispute UI coverage",
+      "file": "14-dispute-fixture.spec.ts",
+      "line": 4,
+      "run": "2026-10-30-dispute-01",
+      "startTime": "2026-10-30T16:58:46.416Z",
+      "status": "passed",
+      "durationMs": 11800,
+      "error": "",
+      "evidence": [
+        "SETUP-DISP-01-dispute-fixture-preparation.json"
+      ]
+    },
+    {
+      "id": "PW-DISPUTE-01",
+      "title": "PW-DISPUTE-01: buyer opens a dispute through the UI",
+      "file": "15-dispute-refund-notification.spec.ts",
+      "line": 7,
+      "run": "2026-10-30-dispute-01",
+      "startTime": "2026-10-30T16:58:58.260Z",
+      "status": "passed",
+      "durationMs": 9142,
+      "error": "",
+      "evidence": [
+        "PW-DISPUTE-01-opened-dispute.json"
+      ]
+    },
+    {
+      "id": "PW-REFUND-01",
+      "title": "PW-REFUND-01: admin refunds the dispute; logged-in buyer receives realtime notification and wallet credit",
+      "file": "15-dispute-refund-notification.spec.ts",
+      "line": 20,
+      "run": "2026-10-30-dispute-01",
+      "startTime": "2026-10-30T16:59:07.631Z",
+      "status": "failed",
+      "durationMs": 9301,
+      "error": "Error: Admin must return to the dispute queue without a runtime error\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 13\n\n- Array []\n+ Array [\n+   \"Error\n+     at Object.wrapException (http://localhost:8886/main.dart.js:9149:47)\n+     at State_setState_closure0.call$0 (http://localhost:8886/main.dart.js:225274:17)\n+     at _AdminOpsDisputesScreenState.setState$1 (http://localhost:8886/main.dart.js:225226:71)\n+     at http://localhost:8886/main.dart.js:116059:27\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\n+     at _wrapJsFunctionForAsync_closure.call$2 (http://localhost:8886/main.dart.js:94330:12)\n+     at Object._asyncStartSync (http://localhost:8886/main.dart.js:12228:20)\n+     at _AdminOpsDisputesScreenState._admin_ops_cases$_refresh$0 (http://localhost:8886/main.dart.js:116090:16)\n+     at http://localhost:8886/main.dart.js:116174:39\n+     at _wrapJsFunctionForAsync_closure.$protected (http://localhost:8886/main.dart.js:12264:15)\",\n+ ]",
+      "evidence": [
+        "PW-REFUND-01-refund-wallet-and-live-notification.json",
+        "PW-REFUND-01-admin-runtime-errors.json"
+      ]
+    },
+    {
+      "id": "PW-NOTIFY-01",
+      "title": "PW-NOTIFY-01: buyer loads saved shipping notifications and opens the correct order",
+      "file": "16-notifications.spec.ts",
+      "line": 4,
+      "run": "2026-10-30-notifications-01",
+      "startTime": "2026-10-30T17:02:19.652Z",
+      "status": "passed",
+      "durationMs": 5698,
+      "error": "",
+      "evidence": [
+        "PW-NOTIFY-01-saved-shipping-notifications.json"
+      ]
+    }
+  ]
+}

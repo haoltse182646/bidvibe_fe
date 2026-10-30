@@ -1,0 +1,51 @@
+{
+  "orderId": "1754",
+  "notifications": [
+    {
+      "id": "12264",
+      "type": "order",
+      "title": "\"E2E_PW_20261030_1793377706403_Main\" đã giao thành công. Hãy kiểm tra và xác nhận trong 72 giờ.",
+      "data": {
+        "orderId": "1754",
+        "auctionId": "5517"
+      }
+    },
+    {
+      "id": "12263",
+      "type": "order",
+      "title": "\"E2E_PW_20261030_1793377706403_Main\" đang được giao qua E2E simulated carrier, mã vận đơn E2E-PW-1754.",
+      "data": {
+        "orderId": "1754",
+        "auctionId": "5517"
+      }
+    },
+    {
+      "id": "12262",
+      "type": "order",
+      "title": "Kho đã nhận \"E2E_PW_20261030_1793377706403_Main\" và đang kiểm tra.",
+      "data": {
+        "orderId": "1754",
+        "auctionId": "5517"
+      }
+    },
+    {
+      "id": "12261",
+      "type": "order",
+      "title": "Người bán đã gửi \"E2E_PW_20261030_1793377706403_Main\" đến kho BidVibe để kiểm tra.",
+      "data": {
+        "orderId": "1754",
+        "auctionId": "5517"
+      }
+    },
+    {
+      "id": "12258",
+      "type": "win",
+      "title": "Bạn đã thắng phiên · E2E_PW_20261030_1793377706403_Main · giá chốt 110.000đ. Đơn #1754: thanh toán trước 23:42 31/10 (24 giờ) và chọn địa chỉ giao hàng để kho gửi hàng cho bạn.",
+      "data": {
+        "orderId": "1754",
+        "auctionId": "5517"
+      }
+    }
+  ],
+  "classification": "Persisted notification history and correct UI navigation; realtime delivery tested separately during refund"
+}

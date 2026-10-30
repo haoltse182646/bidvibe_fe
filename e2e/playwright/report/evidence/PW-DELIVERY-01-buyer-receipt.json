@@ -1,0 +1,11 @@
+{
+  "orderId": "1754",
+  "before": {
+    "paymentStatus": "paid",
+    "payoutStatus": "pending"
+  },
+  "after": {
+    "paymentStatus": "paid",
+    "payoutStatus": "released"
+  }
+}

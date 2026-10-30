@@ -1,0 +1,26 @@
+{
+  "orderId": "1755",
+  "disputeId": "217",
+  "before": {
+    "balance": 43000,
+    "held": 0,
+    "available": 43000,
+    "joinBlockedUntil": null
+  },
+  "after": {
+    "balance": 146000,
+    "held": 0,
+    "available": 146000,
+    "joinBlockedUntil": null
+  },
+  "notification": {
+    "id": "12272",
+    "type": "refund",
+    "data": {
+      "orderId": "1755",
+      "auctionId": "5518",
+      "disputeId": "217"
+    }
+  },
+  "classification": "WebSocket frame received while buyer remained signed in; no manual reload"
+}

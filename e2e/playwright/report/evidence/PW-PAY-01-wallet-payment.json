@@ -1,0 +1,18 @@
+{
+  "orderId": "1754",
+  "amountToPay": 155000,
+  "depositApplied": 1000,
+  "before": {
+    "balance": 199000,
+    "held": 1000,
+    "available": 199000,
+    "joinBlockedUntil": null
+  },
+  "after": {
+    "balance": 44000,
+    "held": 0,
+    "available": 44000,
+    "joinBlockedUntil": null
+  },
+  "paymentStatus": "paid"
+}
