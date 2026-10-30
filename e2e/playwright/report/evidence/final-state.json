@@ -1,0 +1,71 @@
+{
+  "capturedAt": "2026-10-30T17:10:55.109Z",
+  "api": "https://bidvibe-be.onrender.com",
+  "classification": "Read-only final state verification; not an additional UI test",
+  "orders": [
+    {
+      "id": "1754",
+      "auctionId": "5517",
+      "paymentStatus": "paid",
+      "payoutStatus": "released",
+      "finalPrice": 110000,
+      "depositApplied": 1000,
+      "amountToPay": 155000
+    },
+    {
+      "id": "1755",
+      "auctionId": "5518",
+      "paymentStatus": "paid",
+      "payoutStatus": "disputed",
+      "finalPrice": 60000,
+      "depositApplied": 1000,
+      "amountToPay": 102000
+    }
+  ],
+  "auctions": [
+    {
+      "id": "5517",
+      "title": "E2E_PW_20261030_1793377706403_Main",
+      "status": "ended",
+      "winnerId": "2717",
+      "currentPrice": 110000
+    },
+    {
+      "id": "5518",
+      "title": "E2E_PW_20261030_1793379237008_AdminDispute",
+      "status": "ended",
+      "winnerId": "2717",
+      "currentPrice": 60000
+    }
+  ],
+  "wallets": [
+    {
+      "alias": "FRESH_BIDDER_B",
+      "balance": 146000,
+      "held": 0,
+      "available": 146000,
+      "joinBlockedUntil": null
+    },
+    {
+      "alias": "BIDDER_A",
+      "balance": 220000,
+      "held": 0,
+      "available": 220000,
+      "joinBlockedUntil": null
+    },
+    {
+      "alias": "BIDDER_B",
+      "balance": 198000,
+      "held": 0,
+      "available": 198000,
+      "joinBlockedUntil": "2026-11-05T15:39:24.222Z"
+    }
+  ],
+  "dispute": {
+    "id": "217",
+    "orderId": "1755",
+    "status": "resolved",
+    "resolution": "refund"
+  },
+  "notificationCountForMainOrder": 5
+}

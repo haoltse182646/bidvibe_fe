@@ -1,0 +1,24 @@
+{
+  "a": {
+    "depositId": "4880",
+    "deposit": 1000,
+    "balanceAfter": 219000
+  },
+  "b": {
+    "depositId": "4881",
+    "deposit": 1000,
+    "balanceAfter": 199000
+  },
+  "walletA": {
+    "balance": 219000,
+    "held": 1000,
+    "available": 219000,
+    "joinBlockedUntil": null
+  },
+  "walletB": {
+    "balance": 199000,
+    "held": 1000,
+    "available": 199000,
+    "joinBlockedUntil": null
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "httpStatus": 403,
+  "code": "JOIN_BLOCKED",
+  "message": "Bạn tạm thời không được tham gia phiên mới vì đã bỏ thanh toán nhiều lần. Bạn có thể tham gia lại từ 22:39 05/11/2026 (giờ Việt Nam)."
+}
