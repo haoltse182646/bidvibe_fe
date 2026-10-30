@@ -1,0 +1,7 @@
+{
+  "BIDVIBE_CREDENTIALS_FILE": "credentials.local.json",
+  "BIDVIBE_WEB_BUILD_DIR": "../../build/web",
+  "BIDVIBE_BE_ROOT": "C:/path/to/bidvibe_be",
+  "BIDVIBE_API_URL": "https://bidvibe-be.onrender.com",
+  "BIDVIBE_ALLOW_SHARED_MUTATIONS": "false"
+}

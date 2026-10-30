@@ -1,0 +1,30 @@
+{
+  "a": {
+    "before": {
+      "balance": 210000,
+      "held": 0,
+      "available": 210000,
+      "joinBlockedUntil": null
+    },
+    "after": {
+      "balance": 220000,
+      "held": 0,
+      "available": 220000,
+      "joinBlockedUntil": null
+    }
+  },
+  "b": {
+    "before": {
+      "balance": 0,
+      "held": 0,
+      "available": 0,
+      "joinBlockedUntil": null
+    },
+    "after": {
+      "balance": 200000,
+      "held": 0,
+      "available": 200000,
+      "joinBlockedUntil": null
+    }
+  }
+}
