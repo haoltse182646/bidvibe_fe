@@ -183,7 +183,11 @@ class _WarehouseOpsDetailScreenState extends State<WarehouseOpsDetailScreen> {
     setState(() => _saving = true);
     try {
       final updated = await action();
-      if (mounted) setState(() => _future = Future.value(updated));
+      if (mounted) {
+        setState(() {
+          _future = Future.value(updated);
+        });
+      }
     } on ApiException catch (error) {
       if (mounted && !const {'UNAUTHORIZED', 'ACCOUNT_SUSPENDED'}.contains(error.code)) {
         _showError(context, error.message);
