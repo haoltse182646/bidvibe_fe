@@ -50,7 +50,9 @@ class _AdminOpsDashboardScreenState extends State<AdminOpsDashboardScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).dashboard();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
@@ -133,7 +135,9 @@ class _AdminOpsReportScreenState extends State<AdminOpsReportScreen> {
 
   Future<void> _refresh() async {
     final next = _ops(context).weeklyReport();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     await next;
   }
 
