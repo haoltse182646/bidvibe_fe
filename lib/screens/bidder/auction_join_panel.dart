@@ -156,6 +156,7 @@ class _AuctionJoinPanelState extends State<AuctionJoinPanel> {
             'NOT_FOUND',
             'FORBIDDEN',
             'VALIDATION_ERROR',
+            'JOIN_BLOCKED',
           ].contains(e.code);
           setState(() {
             _needsVerification = !rejected;

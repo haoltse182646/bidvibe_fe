@@ -28,13 +28,40 @@ test('PW-REFUND-01: admin refunds the dispute; logged-in buyer receives realtime
  try{
   const bs=await login(buyer,freshAccount());const before=await get(request,bs.token!,'/api/wallet');
   await buyer.getByRole('tab',{name:/Thông báo/}).click();
-  const as=await login(admin,accounts.find(a=>a.role==='admin')!);await admin.getByRole('tab',{name:'Tranh chấp',exact:true}).click();
-  const tile=admin.getByRole('button',{name:new RegExp(s.title)});await scrollFind(admin,tile);await tile.click();
+  await expect(buyer.getByText('Đang nhận thông báo trực tiếp',{exact:true})).toBeVisible();
+  const as=await login(admin,accounts.find(a=>a.role==='admin')!);
+  expect(s.title,'Only a run-owned E2E dispute may be refunded').toMatch(/^E2E_PW_/);
+  const pending=await get(request,as.token!,'/api/admin/disputes?status=open&limit=100');
+  const target=pending.disputes.find((d:any)=>String(d.id)===String(s.disputeId));
+  expect(target,'The exact open dispute must exist before UI navigation').toBeTruthy();
+  expect(String(target.orderId)).toBe(String(s.orderId));
+  expect(target.itemTitle).toBe(s.title);
+  expect(target.status).toBe('open');
+  await admin.getByRole('tab',{name:'Tranh chấp',exact:true}).click();
+  // Wait for the queue filter, not just the navigation tab. The old scroll
+  // loop could run during loading and skip the newest open rows at the top.
+  const openFilter=admin.getByRole('checkbox',{name:'Đang mở',exact:true});
+  await expect(openFilter).toBeVisible();
+  const [queueResponse]=await Promise.all([
+   admin.waitForResponse(r=>{
+    const url=new URL(r.url());
+    return url.origin===new URL(apiURL).origin&&url.pathname==='/api/admin/disputes'&&url.searchParams.get('status')==='open'&&r.request().method()==='GET';
+   }),
+   openFilter.click(),
+  ]);
+  expect(queueResponse.status()).toBe(200);
+  const queue=await queueResponse.json();expect(queue.success).toBe(true);
+  expect(queue.data.disputes.some((d:any)=>String(d.id)===String(s.disputeId))).toBe(true);
+  const escapedTitle=String(s.title).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const tile=admin.getByRole('button',{name:new RegExp(escapedTitle)});
+  await expect(tile).toHaveCount(1);await tile.scrollIntoViewIfNeeded();await tile.click();
+  await expect(admin.getByRole('heading',{name:'Chi tiết tranh chấp',exact:true})).toBeVisible();
+  await expect.poll(()=>admin.locator('body').ariaSnapshot()).toContain(`Tranh chấp #${s.disputeId} · Đơn #${s.orderId} · Người mua`);
   const refund=admin.getByRole('button',{name:'Hoàn tiền người mua',exact:true});await scrollFind(admin,refund);await refund.click();
   const resolved=await waitBusinessResponse(admin,`/api/admin/disputes/${s.disputeId}/resolve`,()=>admin.getByRole('button',{name:'Xác nhận',exact:true}).click());
   expect(resolved.status).toBe(200);expect(resolved.success).toBe(true);updateState({admin:{...s,refunded:true}});
   const after=await get(request,bs.token!,'/api/wallet');const dispute=await get(request,as.token!,`/api/admin/disputes`);
-  const matching=dispute.disputes.find((d:any)=>String(d.id)===s.disputeId);expect(matching.status).toBe('resolved');expect(after.balance).toBeGreaterThan(before.balance);
+  const matching=dispute.disputes.find((d:any)=>String(d.id)===s.disputeId);expect(matching.status).toBe('resolved');expect(matching.resolution).toBe('refund');expect(after.balance).toBeGreaterThan(before.balance);
   await buyer.bringToFront();
   await expect.poll(()=>incoming.some(n=>n.type==='refund'&&String(n.data?.disputeId)===s.disputeId),{timeout:20_000}).toBe(true);
   const event=incoming.find(n=>n.type==='refund'&&String(n.data?.disputeId)===s.disputeId);

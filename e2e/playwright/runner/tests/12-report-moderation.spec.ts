@@ -1,13 +1,13 @@
 import {test,expect} from '@playwright/test';
 import {accounts} from '../support/config';
 import {login,runtimeErrors,attachState} from '../support/ui';
+import {openFixtureAuction} from '../support/auction_ui';
 import {state,updateState,get,evidence,scrollFind,waitBusinessResponse} from '../support/business';
 
 test('PW-REPORT-01: bidder reports only the new admin test auction through the UI',async({page},info)=>{
  const s=state().admin;test.skip(!s?.auctionId,'BLOCKED: admin fixture unavailable.');test.skip(!!s.reported,'Report already submitted.');
  await login(page,accounts.find(a=>a.key==='BIDDER_A')!);
- await page.getByRole('textbox',{name:'Tìm theo tên sản phẩm',exact:true}).fill(s.title);await page.getByRole('button',{name:'Tìm kiếm',exact:true}).click();
- const open=page.getByRole('button',{name:'Xem chi tiết phiên',exact:true});await scrollFind(page,open);await open.click();
+ await openFixtureAuction(page,{title:s.title,auctionId:String(s.auctionId)});
  await page.getByRole('button',{name:'Báo cáo phiên',exact:true}).click();
  const reason=page.getByRole('textbox',{name:/^Lý do báo cáo/});await reason.click();await reason.pressSequentially('E2E moderation scenario',{delay:25});await reason.press('Tab');
  const send=page.getByRole('button',{name:'Gửi báo cáo',exact:true});await scrollFind(page,send);await send.click();
