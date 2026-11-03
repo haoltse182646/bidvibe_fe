@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import {test,expect,type Page} from '@playwright/test';
 import {accounts,apiURL} from '../support/config';
 import {login,attachState,runtimeErrors} from '../support/ui';
+import {openFixtureAuction} from '../support/auction_ui';
 import {state,updateState,freshAccount,get,evidence,scrollFind,waitBusinessResponse,clock,controlPath} from '../support/business';
 
 async function topup(page:Page,amount:number){
@@ -12,14 +13,6 @@ async function topup(page:Page,amount:number){
  const submit=page.getByRole('button',{name:'Nạp tiền',exact:true});await scrollFind(page,submit);await submit.click();
  const result=await waitBusinessResponse(page,'/api/wallet/topup',()=>page.getByRole('button',{name:'Xác nhận',exact:true}).click());
  expect(result.status).toBe(201);expect(result.success).toBe(true);return result.data;
-}
-async function openAuction(page:Page,title:string){
- await page.bringToFront();
- await page.getByRole('tab',{name:'Khám phá',exact:true}).click();
- const search=page.getByRole('textbox',{name:'Tìm theo tên sản phẩm',exact:true});await scrollFind(page,search,-1);await search.fill(title);
- await page.getByRole('button',{name:'Tìm kiếm',exact:true}).click();
- const open=page.getByRole('button',{name:'Xem chi tiết phiên',exact:true});await scrollFind(page,open);await open.click();
- await expect(page.getByRole('heading',{name:new RegExp('Phiên #')})).toBeVisible();
 }
 async function join(page:Page,id:string){
  await page.bringToFront();
@@ -53,7 +46,8 @@ test('PW-BID-01: two isolated bidders top up, deposit, compete in real time, and
    await evidence(info,'wallet-topups',{a:{before:beforeA,after:wa},b:{before:beforeB,after:wb}});
   });
   await ca.tracing.start({screenshots:true,snapshots:true,sources:true});await cb.tracing.start({screenshots:true,snapshots:true,sources:true});
-  await openAuction(a,s.title);await openAuction(b,s.title);
+  await openFixtureAuction(a,{title:s.title,auctionId:String(s.auctionId)});
+  await openFixtureAuction(b,{title:s.title,auctionId:String(s.auctionId)});
   await test.step('Both bidders place deposits through UI confirmations',async()=>{
    const ja=await join(a,s.auctionId);const jb=await join(b,s.auctionId);
    const da=await get(request,sa.token!,`/api/auctions/${s.auctionId}`);const db=await get(request,sb.token!,`/api/auctions/${s.auctionId}`);

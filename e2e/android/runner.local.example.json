@@ -1,0 +1,9 @@
+{
+  "credentialsFile": "../playwright/runner/credentials.local.json",
+  "backendRoot": "C:/Users/haolu/Documents/flutter/bidvibe_be",
+  "flutterCommand": "C:/Users/haolu/develop/flutter/bin/flutter.bat",
+  "deviceId": "emulator-5554",
+  "launchEmulatorId": "Pixel_4a",
+  "allowSharedDatabaseMutations": false,
+  "captureScreenshots": true
+}
