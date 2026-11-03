@@ -9,6 +9,17 @@ test('PW-REG-01: register a fresh bidder through the UI',async({page},info)=>{
  test.skip(fs.existsSync(freshPath),'Fresh account already exists for this run; do not register it twice.');
  const account={key:'FRESH_BIDDER_B',role:'bidder',home:'Khám phá phiên đấu giá',email:`e2e_pw_${Date.now()}@example.com`,password:`Pw_${crypto.randomBytes(10).toString('hex')}!`};
  await openApp(page);
+ page.on('requestfailed', request => {
+  if (new URL(request.url()).pathname === '/api/auth/register') {
+    console.log('REGISTER_NETWORK_ERROR', request.failure()?.errorText);
+  }
+});
+
+page.on('response', response => {
+  if (new URL(response.url()).pathname === '/api/auth/register') {
+    console.log('REGISTER_HTTP_STATUS', response.status());
+  }
+});
  await page.getByRole('button',{name:'Chưa có tài khoản? Đăng ký',exact:true}).click();
  await expect(page.getByRole('textbox',{name:'Họ và tên',exact:true})).toBeVisible();
  await page.getByRole('textbox',{name:'Họ và tên',exact:true}).fill('E2E Playwright Bidder B');

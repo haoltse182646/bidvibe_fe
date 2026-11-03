@@ -3,14 +3,21 @@ import {apiURL,type Account} from './config';
 
 export async function enableAccessibility(page:Page){
  const placeholder=page.locator('flt-semantics-placeholder');
+ await expect.poll(async()=>
+  (await placeholder.count())>0 || (await page.locator('flt-semantics').count())>0,
+  {timeout:60_000,message:'Flutter accessibility entry point or semantics must be mounted'}
+ ).toBe(true);
  if(await placeholder.count()){
-  await placeholder.focus();await placeholder.press('Enter');
+  // Flutter listens for click on this off-viewport custom element. Enter on
+  // role=button does not provide native HTML button activation. This is only
+  // accessibility setup; normal application actions still use user locators.
+  await placeholder.dispatchEvent('click');
  }
+ await expect(page.locator('flt-semantics').first()).toBeAttached({timeout:60_000});
 }
 export async function openApp(page:Page){
  await page.bringToFront();
  await page.goto('/');
- await page.locator('flt-semantics-placeholder').waitFor({state:'attached',timeout:60_000});
  await enableAccessibility(page);
  await expect(page.getByRole('textbox',{name:'Email',exact:true})).toBeVisible();
 }
