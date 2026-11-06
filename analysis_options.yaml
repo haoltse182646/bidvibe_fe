@@ -8,6 +8,8 @@ analyzer:
     - macos/**
     - linux/**
     - e2e/android/private-run/**
+    - e2e/system/private-run/**    
+    - e2e/system/reports/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

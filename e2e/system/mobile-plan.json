@@ -1,0 +1,138 @@
+[
+  {
+    "id": "A-AUTH-BIDDER_A",
+    "title": "UI login / identity / logout"
+  },
+  {
+    "id": "A-AUTH-BIDDER_B",
+    "title": "UI login / identity / logout"
+  },
+  {
+    "id": "A-AUTH-SELLER",
+    "title": "UI login / identity / logout"
+  },
+  {
+    "id": "A-AUTH-APPRAISER",
+    "title": "UI login / identity / logout"
+  },
+  {
+    "id": "A-AUTH-WAREHOUSE",
+    "title": "UI login / identity / logout"
+  },
+  {
+    "id": "A-AUTH-ADMIN",
+    "title": "UI login / identity / logout"
+  },
+  {
+    "id": "A-REG-A",
+    "title": "Register a fresh bidder through Android UI"
+  },
+  {
+    "id": "A-REG-01",
+    "title": "Register a fresh bidder through Android UI"
+  },
+  {
+    "id": "A-LIST-01",
+    "title": "Seller submits a listing; selected image bytes are injected, upload is real"
+  },
+  {
+    "id": "A-APP-01",
+    "title": "Appraiser approves the exact listing through UI"
+  },
+  {
+    "id": "A-BID-A",
+    "title": "Bidder A tops up, joins and bids through UI"
+  },
+  {
+    "id": "A-BID-B",
+    "title": "Fresh buyer tops up, joins and outbids A through UI"
+  },
+  {
+    "id": "A-RT-BID",
+    "title": "Android buyer receives an API actor bid live, then outbids through UI"
+  },
+  {
+    "id": "A-WIN-01",
+    "title": "Expire only the new fixture; verify winner/order and loser deposit refund"
+  },
+  {
+    "id": "A-PAY-01",
+    "title": "Buyer creates/selects address and pays from wallet through UI"
+  },
+  {
+    "id": "A-SHIP-01",
+    "title": "Seller sends only the test order to warehouse through UI"
+  },
+  {
+    "id": "A-WH-1",
+    "title": "Warehouse receive through UI"
+  },
+  {
+    "id": "A-WH-2",
+    "title": "Warehouse inspect through UI"
+  },
+  {
+    "id": "A-WH-3",
+    "title": "Warehouse pack through UI"
+  },
+  {
+    "id": "A-WH-4",
+    "title": "Warehouse ship through UI"
+  },
+  {
+    "id": "A-WH-5",
+    "title": "Warehouse deliver through UI"
+  },
+  {
+    "id": "A-RECEIPT",
+    "title": "Buyer confirms delivery; verify payout released"
+  },
+  {
+    "id": "A-ADMIN-READ",
+    "title": "Admin opens all five operational tabs"
+  },
+  {
+    "id": "A-SETUP-ADMIN",
+    "title": "API prepares a separate moderation fixture; not UI coverage"
+  },
+  {
+    "id": "A-REPORT",
+    "title": "Bidder reports the exact admin fixture through UI"
+  },
+  {
+    "id": "A-MOD-pause",
+    "title": "Admin pause exact report through UI"
+  },
+  {
+    "id": "A-MOD-verify",
+    "title": "Admin verify exact report through UI"
+  },
+  {
+    "id": "A-MOD-safe",
+    "title": "Admin safe exact report through UI"
+  },
+  {
+    "id": "A-BLOCKED",
+    "title": "Restricted bidder sees JOIN_BLOCKED reason through UI"
+  },
+  {
+    "id": "A-SETUP-DISPUTE",
+    "title": "API closes and QR-pays admin fixture; not UI payment coverage"
+  },
+  {
+    "id": "A-DISPUTE",
+    "title": "Buyer opens a dispute through Android UI"
+  },
+  {
+    "id": "A-REFUND",
+    "title": "Admin refunds exact dispute through Android UI"
+  },
+  {
+    "id": "A-NOTIFY",
+    "title": "Buyer loads persisted shipping notifications and opens the correct order"
+  },
+  {
+    "id": "A-RT-REFUND",
+    "title": "Logged-in Android buyer receives refund event from external Admin API actor"
+  }
+]
