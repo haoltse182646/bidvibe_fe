@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {RunStore} from './report-store.mjs';
+function store(){const root=fs.mkdtempSync(path.join(os.tmpdir(),'bidvibe-report-'));return new RunStore(root,{runId:'unit-run',mode:'all'});}
+test('platform export results remain independent within one combined run',()=>{const s=store();s.plan('web',[{id:'W',title:'Web case'}]);s.plan('mobile',[{id:'A',title:'Android case'}]);s.event({suite:'web',id:'W',status:'PASS'});s.event({suite:'mobile',id:'A',status:'FAIL',evidence:{error:'Example failed assertion'}});s.finish();assert.equal(s.snapshot().status,'FAIL');assert.equal(s.snapshot('web').status,'PASS');assert.equal(s.snapshot('mobile').status,'FAIL');assert.equal(s.snapshot('connected').status,'NOT_RUN');assert.equal(s.snapshot('web').counts.PASS,1);assert.equal(s.snapshot('web').counts.FAIL,0);});
+test('unfinished prerequisites and skipped cases cannot produce a successful report',()=>{const s=store();s.plan('mobile',[{id:'A1',title:'Conditional case'},{id:'A2',title:'Unfinished case'}]);s.event({suite:'mobile',id:'A1',status:'SKIP',evidence:{reason:'Restriction expired'}});s.finishSuite('mobile',0);s.finish();assert.equal(s.snapshot().status,'INCOMPLETE');assert.equal(s.snapshot().counts.PASS,0);assert.equal(s.snapshot().counts.SKIP,1);assert.equal(s.snapshot().counts.BLOCKED,1);assert.equal((s.junit().match(/<skipped /g)||[]).length,2);});
+test('late start notifications cannot overwrite completed evidence',()=>{const s=store();s.event({suite:'connected',id:'X1',status:'PASS',evidence:{orderId:'123'}});s.event({suite:'connected',id:'X1',status:'RUNNING'});assert.equal(s.snapshot().cases[0].status,'PASS');assert.equal(s.snapshot().cases[0].evidence.orderId,'123');});
+test('failed child exit cannot be reported as all passing',()=>{const s=store();s.event({suite:'mobile',id:'A1',status:'PASS'});s.finishSuite('mobile',1);s.finish();assert.equal(s.snapshot().status,'FAIL');assert.equal(s.snapshot().counts.FAIL,1);});
+test('untrusted error text is escaped in exported HTML and JUnit',()=>{const s=store();s.event({suite:'web',id:'W',status:'FAIL',evidence:{error:'<script>alert("x")</script> & unsafe'}});assert.ok(!s.html().includes('<script>'));assert.ok(s.html().includes('&lt;script&gt;'));assert.ok(s.junit().includes('&lt;script&gt;'));});

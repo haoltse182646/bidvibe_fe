@@ -31,6 +31,7 @@ const _allow = bool.fromEnvironment('E2E_ANDROID_ALLOW_BUSINESS');
 const _accounts = {
   'BIDDER_A': ('bidder', String.fromEnvironment('E2E_BIDDER_A_EMAIL'), String.fromEnvironment('E2E_BIDDER_A_PASSWORD')),
   'BIDDER_B': ('bidder', String.fromEnvironment('E2E_BIDDER_B_EMAIL'), String.fromEnvironment('E2E_BIDDER_B_PASSWORD')),
+  'RESTRICTED': ('bidder', String.fromEnvironment('E2E_ANDROID_RESTRICTED_EMAIL'), String.fromEnvironment('E2E_ANDROID_RESTRICTED_PASSWORD')),
   'BUYER': ('bidder', String.fromEnvironment('E2E_ANDROID_BUYER_EMAIL'), String.fromEnvironment('E2E_ANDROID_BUYER_PASSWORD')),
   'COMPETITOR': ('bidder', String.fromEnvironment('E2E_ANDROID_COMPETITOR_EMAIL'), String.fromEnvironment('E2E_ANDROID_COMPETITOR_PASSWORD')),
   'SELLER': ('seller', String.fromEnvironment('E2E_SELLER_EMAIL'), String.fromEnvironment('E2E_SELLER_PASSWORD')),
@@ -505,7 +506,7 @@ void main() {
   }
 
   _scenario('A-BLOCKED','Restricted bidder sees JOIN_BLOCKED reason through UI',(t) async {
-    await _login(t,'BIDDER_B');final wallet=await _api(t).request('/api/wallet');
+    await _login(t,_accounts['RESTRICTED']!.$2.isNotEmpty?'RESTRICTED':'BIDDER_B');final wallet=await _api(t).request('/api/wallet');
     final until=DateTime.tryParse('${wallet['joinBlockedUntil']}');
     if(until==null||!until.isAfter(DateTime.now())){throw const _SkipCase('No active JOIN_BLOCKED restriction; no violation created to force this scenario.');}
     await _openAuction(t,_s['adminTitle'] as String,_s['adminAuctionId'] as String);
