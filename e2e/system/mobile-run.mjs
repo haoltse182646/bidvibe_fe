@@ -107,6 +107,7 @@ async function startControl(){
     await hub('/runner-event',{...event,suite,title:event.evidence?.description||event.id,...(event.screenshot?{screenshotAbsolute:path.join(runDir,event.screenshot)}:{})});
     return send(200,{recorded:true});
    }
+   if(req.url==='/connected-command'){if(suite!=='connected')throw Error('Connected command unavailable in mobile mode');return send(200,await hub('/connected-command',{...input,suite}));}
    const id=String(input.auctionId||'');if(!/^\d+$/.test(id))throw Error('Invalid auction id');
    const {rows}=await pool.query('SELECT a.id,l.id AS listing_id,l.title,l.seller_id,l.created_at FROM auctions a JOIN listings l ON l.id=a.listing_id WHERE a.id=$1',[id]);
    const a=rows[0];if(!a||!a.title.startsWith(prefix+'_'))throw Error('Refusing unrelated fixture');
@@ -133,7 +134,7 @@ async function startControl(){
 function report(){
  const latest=new Map(events.map(e=>[e.id,e]));const rows=[...latest.values()];
  const counts={passed:rows.filter(e=>e.status==='PASS').length,failed:rows.filter(e=>e.status==='FAIL').length,skipped:rows.filter(e=>e.status==='SKIP').length};
- const expectedCases=mode==='auth'?6:mode==='connected'?11:34;
+ const expectedCases=mode==='auth'?6:mode==='connected'?JSON.parse(fs.readFileSync(path.join(here,'connected-plan.json'),'utf8')).length:34;
  const result={runId,mode,device,prefix,api,sourceSHA256,exitCode,interrupted,counts,expectedCases,notReported:Math.max(0,expectedCases-rows.length),allCasesPassed:exitCode===0&&rows.length===expectedCases&&counts.failed===0&&counts.skipped===0,events:rows};
  fs.writeFileSync(path.join(runDir,'results.json'),JSON.stringify(result,null,2));
  fs.writeFileSync(path.join(runDir,'execution.log'),logs.join('\n'));
@@ -149,6 +150,7 @@ process.once('SIGTERM',()=>{interrupted=true;child?.kill();});
 try{
  console.log('Android E2E run '+runId+'; mode '+mode+'. Source is built from '+root);
  await deviceReady();
+ await hub('/register-identities',{suite,prefix,emails:[freshEmail,competitorEmail]});
  await startControl();
  const args=['test','integration_test/'+sourceName,'-d',device,'--dart-define-from-file='+definesFile,'--reporter','expanded'];
  if(mode==='auth')args.push('--name','^A-AUTH-');
