@@ -15,6 +15,9 @@ export class WebActor {
  async filter(endpoint,status){const field=this.page.getByRole('combobox',{name:'Lọc trạng thái',exact:true});if(await field.inputValue()===status){await this.expect(this.page.getByRole('button',{name:'Làm mới',exact:true})).toBeEnabled();return this.refresh(endpoint);}return this.response(endpoint,()=>field.selectOption(status),{query:status?{status}:undefined});}
  async ownRow({type,id,title}){
   const row=this.page.getByRole('row').filter({hasText:type==='flag'?`Cờ #${id}`:type==='dispute'?`Đơn #${id}`:title});
+  // tab/filter already awaited their fresh response. Reuse an exact visible
+  // owned row; refresh and paginate only when it is not on the current page.
+  if(await row.count()===1){if(title)await this.expect(row).toContainText(title);return row;}
   if(type==='flag'||type==='dispute'){
    const endpoint=type==='flag'?'/api/admin/flags':'/api/admin/disputes',key=type==='flag'?'flags':'disputes';
    let data=await this.refresh(endpoint);

@@ -44,6 +44,8 @@ Nguồn gốc hợp đồng: `docs/api.md`, `docs/socket.md`, `docs/bidvibe.post
 
 Sổ địa chỉ mới đang chờ Hào xác nhận ghép/test local sau lỗi import. Chat không có API liệt kê/xóa session trong BE được cung cấp. Không tự thêm API giả để gọi.
 
+Chatbot đã đối chiếu bản BE `6cb86c9` và kiểm tra hành vi trên Render ngày 13/11/2026. Hai endpoint giữ nguyên; gợi ý mới theo role, câu nối tiếp và dữ liệu cá nhân được mô tả tại [Chatbot integration](chatbot-integration.md).
+
 ## API cần Hiệu tích hợp/nối vào module thật
 
 | Chức năng | Endpoint chính | Điểm bàn giao |

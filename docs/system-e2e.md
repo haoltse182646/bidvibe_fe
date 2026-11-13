@@ -81,7 +81,7 @@ Chọn một trong bốn chế độ rồi bấm **Bắt đầu kiểm thử**:
 | Chế độ | Nội dung |
 |---|---|
 | React Web | Landing, xác thực Admin, đọc dữ liệu, tải báo cáo tuần, quản lý tài khoản thử, xử lý cờ và tranh chấp |
-| Android mobile | Bộ nghiệp vụ Android hiện có, gồm 34 ca được khai báo |
+| Android mobile | 66 case nghiệp vụ Android; không tính auth/đăng ký riêng. Xem [Android business E2E](android-business-e2e.md) |
 | Connected Web ↔ Android | Cùng listing/auction/order/dispute được tạo và kiểm tra qua hai giao diện |
 | All suites | Chạy lần lượt ba bộ và tạo báo cáo tổng hợp trong cùng lượt chạy |
 
@@ -149,3 +149,7 @@ node --test e2e/system/report-store.test.mjs
 ```
 
 Các kiểm tra này bảo đảm báo cáo tách đúng phạm vi, không tính ca thiếu/SKIP là PASS, giữ kết quả đã hoàn thành và ghi đúng lỗi runner. Đây là unit test của bộ báo cáo, không cộng vào số ca E2E.
+
+## Tối ưu và kết quả xác nhận mới nhất
+
+Xem [E2E performance and verification](e2e-performance.md) để đọc thay đổi, thời gian đo và các lượt Web/Android/Connected đã chạy.

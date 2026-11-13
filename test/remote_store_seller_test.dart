@@ -345,6 +345,7 @@ void main() {
       await t.tap(find.text('Đang gửi…'), warnIfMissed: false);
       await t.pump();
       expect(store.creates, 1);
+      expect(store.submittedCategory, 'antique');
       gate.complete(true);
       await t.pumpAndSettle();
       expect(find.text('Đã tạo phiếu ký gửi'), findsOneWidget);
@@ -453,6 +454,7 @@ class _DisputeStore extends AppStore {
 class _CreateStore extends AppStore {
   final Completer<bool> gate;
   int creates = 0;
+  String? submittedCategory;
   _CreateStore(this.gate);
   @override
   FutureOr<bool> createListing({
@@ -465,6 +467,7 @@ class _CreateStore extends AppStore {
     List<PickedImage> images = const [],
   }) {
     creates++;
+    submittedCategory = cat;
     return gate.future;
   }
 }

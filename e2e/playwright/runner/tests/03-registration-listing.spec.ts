@@ -46,7 +46,7 @@ test('PW-LIST-01: seller uploads a real file and submits a new listing',async({p
  const chooserPromise=page.waitForEvent('filechooser',{timeout:10_000});
  await page.getByRole('button',{name:'',exact:true}).first().click();
  const chooser=await chooserPromise;await chooser.setFiles('assets/e2e-product.png');
- await page.getByRole('textbox',{name:'Ví dụ: Giày da thủ công, size 41',exact:true}).fill(title);
+ await page.getByRole('textbox',{name:'Ví dụ: Bình gốm men rạn thế kỷ XIX',exact:true}).fill(title);
  const price=page.getByRole('textbox',{name:'Nhập giá khởi điểm',exact:true});
  await scrollFind(page,price);await price.click();
  await price.pressSequentially('10000',{delay:100});

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/remote_app_store.dart';
 import '../../features/chat/chat_controller.dart';
 import '../../features/chat/chat_repository.dart';
+import '../../features/chat/chat_prompts.dart';
 import '../../store.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
@@ -22,21 +23,11 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
   late final ChatController _chat;
   late final RemoteAppStore _store;
   bool _loggingOut = false;
-  static const suggestions = [
-    'Đặt cọc hoạt động thế nào?',
-    'Khi nào tôi được hoàn cọc?',
-    'Giao hàng diễn ra như thế nào?',
-    'Cách nạp tiền vào ví',
-    'Thanh toán có những khoản phí nào?',
-    'Tôi muốn khiếu nại đơn hàng',
-    'Cách đăng tin bán sản phẩm',
-  ];
   @override
   void initState() {
     super.initState();
     _store = context.read<AppStore>() as RemoteAppStore;
-    _chat =
-        widget.controller ??
+    _chat = widget.controller ??
         ChatController(
           repository: ChatRepository(_store.api),
           accountId: _store.currentUser!.id,
@@ -143,6 +134,53 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
     }
   }
 
+  Future<void> _showTopics(List<ChatPrompt> prompts) async {
+    FocusScope.of(context).unfocus();
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * .7),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Bạn cần hỗ trợ gì?',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                const Text(
+                    'Chọn một câu hỏi để gửi, hoặc nhập câu hỏi theo cách của bạn.',
+                    style: TextStyle(color: AppColors.muted)),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final prompt in prompts)
+                      ActionChip(
+                        label: Text(prompt.label),
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          unawaited(_send(prompt.question));
+                        },
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AppStore>().currentUser;
@@ -150,6 +188,9 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
       return const SizedBox.shrink();
     }
     final busy = _chat.loading || _chat.sending;
+    final prompts =
+        ChatPrompts.forRole(user.role, continuing: _chat.messages.isNotEmpty);
+    final isBidder = user.role == 'bidder';
     return PopScope(
       canPop: !_chat.sending,
       child: Scaffold(
@@ -166,7 +207,7 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
               SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  'Trợ lý hỗ trợ',
+                  'Trợ lý BidVibe',
                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -206,8 +247,10 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
                     : _chat.messages.length + (_chat.sending ? 1 : 0),
                 itemBuilder: (context, i) {
                   if (_chat.messages.isEmpty) {
-                    return const _Bubble(
-                      text: 'Xin chào! Bạn cần hỗ trợ về đặt cọc, đặt giá, thanh toán, giao hàng hay tranh chấp? Chọn gợi ý bên dưới hoặc nhập câu hỏi của bạn.',
+                    return _Bubble(
+                      text: isBidder
+                          ? 'Xin chào! Mình có thể hướng dẫn đấu giá, thanh toán, giao hàng và tranh chấp; xem giúp ví, tiền cọc, phiên tham gia và đơn hàng của chính bạn. Bạn có thể hỏi không dấu hoặc chọn gợi ý bên dưới.'
+                          : 'Xin chào! Mình có thể hướng dẫn đăng tin, thẩm định, gửi hàng về kho và giải ngân. Bạn có thể hỏi không dấu hoặc chọn gợi ý bên dưới.',
                       fromUser: false,
                     );
                   }
@@ -241,7 +284,9 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        _chat.error ?? _chat.warning ?? 'Hãy kiểm tra lịch sử trước khi tiếp tục. Câu hỏi không được tự động gửi lại.',
+                        _chat.error ??
+                            _chat.warning ??
+                            'Hãy kiểm tra lịch sử trước khi tiếp tục. Câu hỏi không được tự động gửi lại.',
                         style: TextStyle(
                           fontSize: 12,
                           color: _chat.error != null
@@ -271,24 +316,46 @@ class _CustomerChatbotScreenState extends State<CustomerChatbotScreen> {
                   ),
                 ),
               ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+              child: Row(
+                children: [
+                  const Expanded(
+                      child: Text('Gợi ý nhanh',
+                          style:
+                              TextStyle(fontSize: 12, color: AppColors.muted))),
+                  TextButton.icon(
+                    onPressed:
+                        _chat.canSend ? () => _showTopics(prompts) : null,
+                    icon: const Icon(Icons.grid_view_rounded, size: 16),
+                    label: const Text('Tất cả chủ đề'),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(
               height: 44,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: suggestions.length,
+                itemCount: prompts.length,
                 separatorBuilder: (context, i) => const SizedBox(width: 8),
-                itemBuilder: (context, i) => FilterChipButton(
-                  label: suggestions[i],
-                  selected: false,
-                  onTap: () {
-                    if (_chat.canSend) {
-                      unawaited(_send(suggestions[i]));
-                    }
-                  },
+                itemBuilder: (context, i) => ActionChip(
+                  label: Text(prompts[i].label),
+                  backgroundColor: AppColors.surface,
+                  onPressed: _chat.canSend
+                      ? () => unawaited(_send(prompts[i].question))
+                      : null,
                 ),
               ),
             ),
+            if (isBidder)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+                child: Text(
+                    'Thông tin ví, cọc và đơn hàng phản ánh tại thời điểm trả lời.',
+                    style: TextStyle(fontSize: 11, color: AppColors.muted)),
+              ),
             SafeArea(
               top: false,
               child: Padding(
@@ -357,34 +424,34 @@ class _Bubble extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Align(
-    alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
-    child: Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width * .8,
-      ),
-      decoration: BoxDecoration(
-        color: fromUser ? AppColors.accent : Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(fromUser ? 16 : 4),
-          bottomRight: Radius.circular(fromUser ? 4 : 16),
+        alignment: fromUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width * .8,
+          ),
+          decoration: BoxDecoration(
+            color: fromUser ? AppColors.accent : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(fromUser ? 16 : 4),
+              bottomRight: Radius.circular(fromUser ? 4 : 16),
+            ),
+            border: fromUser ? null : Border.all(color: AppColors.border),
+          ),
+          child: SelectableText(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: fromUser
+                  ? Colors.white
+                  : (faded ? AppColors.muted : AppColors.ink),
+              fontStyle: faded ? FontStyle.italic : FontStyle.normal,
+            ),
+          ),
         ),
-        border: fromUser ? null : Border.all(color: AppColors.border),
-      ),
-      child: SelectableText(
-        text,
-        style: TextStyle(
-          fontSize: 14,
-          height: 1.45,
-          color: fromUser
-              ? Colors.white
-              : (faded ? AppColors.muted : AppColors.ink),
-          fontStyle: faded ? FontStyle.italic : FontStyle.normal,
-        ),
-      ),
-    ),
-  );
+      );
 }

@@ -62,7 +62,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
   final titleCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   final startCtrl = TextEditingController();
-  String cat = 'shoes';
+  String cat = 'antique';
   String cond = 'Như mới';
   String dur = '24 giờ';
   List<PickedImage> images = [];
@@ -104,7 +104,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
     final store = context.watch<AppStore>();
     final live = liveAi;
     final ai = live != null
-        ? _AiSuggestion(price: live.price, range: '${store.money(live.low)} – ${store.money(live.high)}', reasons: [live.explanation])
+        ? _AiSuggestion(price: live.price, range: '${store.money(live.low)} – ${store.money(live.high)}', reasons: [live.explanation.replaceAll(', chưa dùng mô hình AI', '')])
         : _aiByCat[cat]!;
     final start = int.tryParse(startCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
     final canSubmit = titleCtrl.text.trim().isNotEmpty && start != null && start > 0 && images.isNotEmpty;
@@ -155,7 +155,7 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           const SizedBox(height: 18),
           const Text('Tên sản phẩm', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          TextField(controller: titleCtrl, decoration: _dec('Ví dụ: Giày da thủ công, size 41'), onChanged: (_) => setState(() => aiState = _AiState.idle)),
+          TextField(controller: titleCtrl, decoration: _dec('Ví dụ: Bình gốm men rạn thế kỷ XIX'), onChanged: (_) => setState(() => aiState = _AiState.idle)),
 
           const SizedBox(height: 18),
           const Text('Danh mục', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -163,14 +163,6 @@ class _SellerCreateScreenState extends State<SellerCreateScreen> {
           Wrap(
             spacing: 8,
             children: [
-              _chip('Giày', 'shoes', cat, (v) => setState(() {
-                    cat = v;
-                    aiState = _AiState.idle;
-                  })),
-              _chip('Điện tử', 'elec', cat, (v) => setState(() {
-                    cat = v;
-                    aiState = _AiState.idle;
-                  })),
               _chip('Đồ cổ', 'antique', cat, (v) => setState(() {
                     cat = v;
                     aiState = _AiState.idle;

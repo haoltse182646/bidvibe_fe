@@ -150,7 +150,7 @@ void main() {
         final create = find.byType(SellerCreateScreen);
         final titleField = find.byWidgetPredicate((w) =>
             w is TextField &&
-            w.decoration?.hintText == 'Ví dụ: Giày da thủ công, size 41');
+            w.decoration?.hintText == 'Ví dụ: Bình gốm men rạn thế kỷ XIX');
         final recorder = ui.PictureRecorder();
         final canvas = Canvas(recorder);
         canvas.drawRect(

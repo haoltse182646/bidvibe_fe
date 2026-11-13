@@ -11,7 +11,7 @@ import {Fixtures,closeBackend} from './fixtures.mjs';
 import {WebActor,webPlan,runWebSuite} from './web-suite.mjs';
 import {ConnectedBridge} from './connected-bridge.mjs';
 const exec=promisify(execFile),here=path.dirname(fileURLToPath(import.meta.url));
-const configPath=path.join(here,'runner.local.json');
+const configPath=process.env.BIDVIBE_SYSTEM_CONFIG||path.join(here,'runner.local.json');
 if(!fs.existsSync(configPath))throw Error('Copy runner.local.example.json to runner.local.json and set the local paths.');
 const rawConfig=JSON.parse(fs.readFileSync(configPath,'utf8'));
 const config={...rawConfig};
