@@ -10,13 +10,18 @@ import {fileURLToPath} from 'node:url';
 
 const exec=promisify(execFile);
 const here=path.dirname(fileURLToPath(import.meta.url));
-const config=JSON.parse(fs.readFileSync(path.join(here,'runner.local.json'),'utf8'));
+const config=JSON.parse(fs.readFileSync(process.env.BIDVIBE_SYSTEM_CONFIG||path.join(here,'runner.local.json'),'utf8'));
 const root=path.resolve(here,config.frontendRoot||'../..');
 const credentials=JSON.parse(fs.readFileSync(path.resolve(here,config.credentialsFile),'utf8'));
 const mode=process.argv[2]||'business';
-if(!['auth','business','connected'].includes(mode))throw Error('Unknown mobile mode.');
+if(!['business','connected'].includes(mode))throw Error('Unknown mobile mode.');
 if(config.allowSharedDatabaseMutations!==true)throw Error('Set allowSharedDatabaseMutations=true only for the authorized database.');
 const suite=mode==='connected'?'connected':'mobile';
+const mainScreenshots=new Set(JSON.parse(fs.readFileSync(path.join(here,'mobile-plan.json'),'utf8')).filter(c=>c.phase==='main-flow').map(c=>c.id));
+for(const id of ['A-ADDR-EDIT','A-BLOCKED','A-REPORT','A-MOD-pause','A-DISPUTE','A-REFUND','A-KEEP-RESOLVE','A-RT-REFUND'])mainScreenshots.add(id);
+// Keep complete checkpoint evidence; screenshots cover UI milestones and every failure.
+const connectedScreenshots=new Set([...Array.from({length:15},(_,i)=>'X-S'+String(i+1).padStart(2,'0')),
+ 'X-M02','X-M05','X-M06','X-R02','X-R06','X-K02','X-U02','X-U04','X-N07']);
 const hubURL=process.env.BIDVIBE_SYSTEM_HUB_URL;
 const hubKey=process.env.BIDVIBE_SYSTEM_HUB_KEY;
 async function hub(endpoint,body){if(!hubURL)return {};const r=await fetch(hubURL+endpoint,{method:'POST',headers:{'Content-Type':'application/json','x-system-key':hubKey},body:JSON.stringify(body),signal:AbortSignal.timeout(85000)});const b=await r.json();if(!r.ok)throw Error(b.error||'System coordinator error');return b;}
@@ -100,13 +105,14 @@ async function startControl(){
    if(req.url==='/checkpoint'){
     if(!/^[AX]-[A-Za-z0-9_-]+$/.test(input.id)||!['RUNNING','PASS','FAIL','SKIP'].includes(input.status))throw Error('Invalid checkpoint');
     const event=JSON.parse(clean(JSON.stringify({...input,at:new Date().toISOString()})));
-    if(config.captureScreenshots!==false&&['PASS','FAIL'].includes(input.status)){
+    if(config.captureScreenshots!==false&&(input.status==='FAIL'||(input.status==='PASS'&&(suite==='mobile'?mainScreenshots.has(input.id):connectedScreenshots.has(input.id))))){
      try{const {stdout}=await exec(adb,['-s',device,'exec-out','screencap','-p'],{encoding:'buffer',maxBuffer:12*1024*1024,timeout:10000});const name=input.id+'-'+input.status+'.png';fs.writeFileSync(path.join(runDir,'screenshots',name),stdout);event.screenshot='screenshots/'+name;}catch(error){event.screenshotError=clean(error.message);}
     }
     events.push(event);fs.writeFileSync(path.join(runDir,'checkpoints.json'),JSON.stringify(events,null,2));
     await hub('/runner-event',{...event,suite,title:event.evidence?.description||event.id,...(event.screenshot?{screenshotAbsolute:path.join(runDir,event.screenshot)}:{})});
     return send(200,{recorded:true});
    }
+   if(req.url==='/connected-command'){if(suite!=='connected')throw Error('Connected command unavailable in mobile mode');return send(200,await hub('/connected-command',{...input,suite}));}
    const id=String(input.auctionId||'');if(!/^\d+$/.test(id))throw Error('Invalid auction id');
    const {rows}=await pool.query('SELECT a.id,l.id AS listing_id,l.title,l.seller_id,l.created_at FROM auctions a JOIN listings l ON l.id=a.listing_id WHERE a.id=$1',[id]);
    const a=rows[0];if(!a||!a.title.startsWith(prefix+'_'))throw Error('Refusing unrelated fixture');
@@ -133,11 +139,11 @@ async function startControl(){
 function report(){
  const latest=new Map(events.map(e=>[e.id,e]));const rows=[...latest.values()];
  const counts={passed:rows.filter(e=>e.status==='PASS').length,failed:rows.filter(e=>e.status==='FAIL').length,skipped:rows.filter(e=>e.status==='SKIP').length};
- const expectedCases=mode==='auth'?6:mode==='connected'?11:34;
+ const expectedCases=JSON.parse(fs.readFileSync(path.join(here,mode==='connected'?'connected-plan.json':'mobile-plan.json'),'utf8')).length;
  const result={runId,mode,device,prefix,api,sourceSHA256,exitCode,interrupted,counts,expectedCases,notReported:Math.max(0,expectedCases-rows.length),allCasesPassed:exitCode===0&&rows.length===expectedCases&&counts.failed===0&&counts.skipped===0,events:rows};
  fs.writeFileSync(path.join(runDir,'results.json'),JSON.stringify(result,null,2));
  fs.writeFileSync(path.join(runDir,'execution.log'),logs.join('\n'));
- const md=['# BidVibe Android E2E Report','',`Run: ${runId}`,`Device: ${device}`,`API: ${api}`,'',`Recorded outcomes: ${counts.passed} PASS / ${counts.failed} FAIL / ${counts.skipped} SKIP. Flutter exit code: ${exitCode}.`,'','These are Android integration tests, not the Playwright web suite. Each A-* ID is a testWidgets case. PASS is not inferred for missing or blocked cases.','', '| Case | Result | Evidence | Screenshot |','|---|---|---|---|',...rows.map(e=>`| ${e.id} | ${e.status} | ${clean(JSON.stringify(e.evidence)).replaceAll('|','/').replaceAll('\n',' ')} | ${e.screenshot?'[image]('+e.screenshot+')':''} |`),'','Coverage notes: UI roles run sequentially on one emulator. External bid/refund actors use authenticated APIs to trigger real Socket.IO updates while the Android buyer remains logged in. The first dispute refund is exercised through Admin Android UI. Image bytes are injected through the existing PhotoPicker callback; native gallery selection is not tested. Fixture expiry and the secondary/third paid orders are explicit API setup, not UI payment coverage. QR and delivery are simulated application operations, not real banking/logistics.','', 'Raw logs, screenshots and defines.local.json remain private. Do not commit private-run or distribute the test APK containing compiled test credentials.',''];
+ const md=['# BidVibe Android E2E Report','',`Run: ${runId}`,`Device: ${device}`,`API: ${api}`,'',`Recorded outcomes: ${counts.passed} PASS / ${counts.failed} FAIL / ${counts.skipped} SKIP. Flutter exit code: ${exitCode}.`,'','These are Android integration tests, not the Playwright web suite. Business cases exclude standalone login/registration tests. Authentication and fresh bidder creation are setup. Case evidence distinguishes Android UI from API assertions and preparation. PASS is not inferred for missing or blocked cases.','', '| Case | Result | Evidence | Screenshot |','|---|---|---|---|',...rows.map(e=>`| ${e.id} | ${e.status} | ${clean(JSON.stringify(e.evidence)).replaceAll('|','/').replaceAll('\n',' ')} | ${e.screenshot?'[image]('+e.screenshot+')':''} |`),'','Coverage notes: UI roles run sequentially on one emulator. External bid/refund actors use authenticated APIs to trigger real Socket.IO updates while the Android buyer remains logged in. The first dispute refund is exercised through Admin Android UI. Image bytes are injected through the existing PhotoPicker callback; native gallery selection is not tested. Fixture expiry and the secondary/third paid orders are explicit API setup, not UI payment coverage. QR and delivery are simulated application operations, not real banking/logistics.','', 'Raw logs, screenshots and defines.local.json remain private. Do not commit private-run or distribute the test APK containing compiled test credentials.',''];
  fs.writeFileSync(path.join(runDir,'REPORT.md'),md.join('\n'));
  const escape=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
  fs.writeFileSync(path.join(runDir,'REPORT.html'),'<!doctype html><meta charset="utf-8"><title>Android E2E</title><style>body{font:15px system-ui;margin:36px;color:#18243c}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:10px;vertical-align:top}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><h1>BidVibe Android E2E</h1><p>'+escape(runId)+' — '+escape(JSON.stringify(counts))+'</p><p>Flutter exit code: '+exitCode+'. Missing cases are not PASS.</p><table><tr><th>Case</th><th>Status</th><th>Evidence</th><th>Screenshot</th></tr>'+rows.map(e=>'<tr><td>'+escape(e.id)+'</td><td>'+escape(e.status)+'</td><td><pre>'+escape(JSON.stringify(e.evidence,null,2))+'</pre></td><td>'+(e.screenshot?'<a href="'+escape(e.screenshot)+'">View</a>':'')+'</td></tr>').join('')+'</table><p>See REPORT.md for API setup and native gallery limitations.</p>');
@@ -149,9 +155,10 @@ process.once('SIGTERM',()=>{interrupted=true;child?.kill();});
 try{
  console.log('Android E2E run '+runId+'; mode '+mode+'. Source is built from '+root);
  await deviceReady();
+ await hub('/register-identities',{suite,prefix,emails:[freshEmail,competitorEmail]});
  await startControl();
  const args=['test','integration_test/'+sourceName,'-d',device,'--dart-define-from-file='+definesFile,'--reporter','expanded'];
- if(mode==='auth')args.push('--name','^A-AUTH-');
+
  exitCode=await flutterRun(args);
 }catch(error){logs.push(clean(error.stack||error.message));console.error(clean(error.message));exitCode=1;}
 finally{

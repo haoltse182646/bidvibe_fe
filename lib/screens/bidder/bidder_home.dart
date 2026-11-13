@@ -75,7 +75,7 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
     try {
       final values = await _repo.categories();
       if (!mounted) return;
-      setState(() => _categories = values);
+      setState(() => _categories = values.where((category) => category['code'] == 'antique').toList());
     } catch (e) {
       if (!mounted || _sessionExpired(e)) return;
       setState(() => _categoryError = _message(e));

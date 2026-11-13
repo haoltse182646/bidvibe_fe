@@ -13,5 +13,7 @@
   "captureScreenshots": true,
   "prepareRestrictedBidder": true,
   "headed": true,
-  "openDashboard": true
+  "openDashboard": true,
+  "cleanupAfterRun": true,
+  "keepFailedFixtures": false
 }
