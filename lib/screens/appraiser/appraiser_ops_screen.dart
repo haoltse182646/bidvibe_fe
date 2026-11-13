@@ -157,31 +157,10 @@ class _AppraiserOpsDetailScreenState extends State<AppraiserOpsDetailScreen> {
   Future<void> _decide(String decision) async {
     String? reason;
     if (decision != 'approve') {
-      final controller = TextEditingController();
       reason = await showDialog<String>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(decision == 'reject' ? 'Từ chối tin đăng' : 'Yêu cầu bổ sung'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLength: 1000,
-            maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Lý do bắt buộc'),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Huỷ')),
-            FilledButton(
-              onPressed: () {
-                final value = controller.text.trim();
-                if (value.isNotEmpty) Navigator.pop(dialogContext, value);
-              },
-              child: const Text('Tiếp tục'),
-            ),
-          ],
-        ),
+        builder: (_) => _AppraisalReasonDialog(decision: decision),
       );
-      controller.dispose();
       if (reason == null || !mounted) return;
     } else {
       final confirmed = await showDialog<bool>(
@@ -315,6 +294,48 @@ class _AppraiserOpsDetailScreenState extends State<AppraiserOpsDetailScreen> {
         );
       },
     ),
+  );
+}
+
+// The route can keep building while its exit animation runs after showDialog
+// completes. Its State owns the controller until the input is actually unmounted.
+class _AppraisalReasonDialog extends StatefulWidget {
+  final String decision;
+  const _AppraisalReasonDialog({required this.decision});
+
+  @override
+  State<_AppraisalReasonDialog> createState() => _AppraisalReasonDialogState();
+}
+
+class _AppraisalReasonDialogState extends State<_AppraisalReasonDialog> {
+  final _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.decision == 'reject' ? 'Từ chối tin đăng' : 'Yêu cầu bổ sung'),
+    content: TextField(
+      controller: _reason,
+      autofocus: true,
+      maxLength: 1000,
+      maxLines: 4,
+      decoration: const InputDecoration(labelText: 'Lý do bắt buộc'),
+    ),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+      FilledButton(
+        onPressed: () {
+          final value = _reason.text.trim();
+          if (value.isNotEmpty) Navigator.pop(context, value);
+        },
+        child: const Text('Tiếp tục'),
+      ),
+    ],
   );
 }
 

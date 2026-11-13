@@ -1,0 +1,409 @@
+[
+  {
+    "id": "A-LIST-01",
+    "title": "Seller submits a listing; selected image bytes are injected, upload is real",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-APP-01",
+    "title": "Appraiser approves the exact listing through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-BID-A",
+    "title": "Bidder A tops up, joins and bids through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-BID-B",
+    "title": "Fresh buyer tops up, joins and outbids A through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-RT-BID",
+    "title": "Android buyer receives an API actor bid live, then outbids through UI",
+    "classification": "Android realtime observation + API actor",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WIN-01",
+    "title": "Expire only the new fixture; verify winner/order and loser deposit refund",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-PAY-01",
+    "title": "Buyer creates/selects address and pays from wallet through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-SHIP-01",
+    "title": "Seller sends only the test order to warehouse through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WH-1",
+    "title": "Warehouse receive through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WH-2",
+    "title": "Warehouse inspect through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WH-3",
+    "title": "Warehouse pack through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WH-4",
+    "title": "Warehouse ship through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WH-5",
+    "title": "Warehouse deliver through UI",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-RECEIPT",
+    "title": "Buyer confirms delivery; verify payout released",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-NOTIFY",
+    "title": "Buyer loads persisted shipping notifications and opens the correct order",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-WALLET-LEDGER",
+    "title": "Android wallet displays committed transaction history and consistent available balance",
+    "classification": "UI + API verification",
+    "phase": "main-flow"
+  },
+  {
+    "id": "A-SELL-EMPTY",
+    "title": "Seller cannot submit a listing without required title, price and image",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-WALLET-EMPTY",
+    "title": "Wallet UI rejects invalid top-up: EMPTY",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-WALLET-ZERO",
+    "title": "Wallet UI rejects invalid top-up: ZERO",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-WALLET-NEGATIVE",
+    "title": "Wallet UI rejects invalid top-up: NEGATIVE",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-WALLET-DECIMAL",
+    "title": "Wallet UI rejects invalid top-up: DECIMAL",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-WALLET-OVERMAX",
+    "title": "Wallet UI rejects invalid top-up: OVERMAX",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-APP-INFO",
+    "title": "Appraiser requests more information with mandatory reason through Android",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-APP-RESUBMIT",
+    "title": "Seller API resubmission returns the exact needs-info listing to Android appraisal queue",
+    "classification": "API resubmission + Android appraisal UI",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-APP-REJECT",
+    "title": "Appraiser rejects a separate pending listing with a recorded reason",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-JOIN-POOR",
+    "title": "Insufficient available balance prevents deposit without holding money",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-BID-NODEPOSIT",
+    "title": "Android disables bidding until the buyer has deposited",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-BID-LOW",
+    "title": "Android rejects a below-minimum bid without inserting another bid",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-BID-CANCEL",
+    "title": "Cancelling the bid confirmation leaves price and bid count unchanged",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-BID-SELF",
+    "title": "Leading bidder cannot outbid themselves through Android",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-PAY-NOADDRESS",
+    "title": "Android blocks payment before a shipping address is selected",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-SHIP-UNPAID",
+    "title": "Seller API cannot send the owned unpaid order to the warehouse",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-ORDER-OWNERSHIP",
+    "title": "Other bidder API cannot read or pay the winning buyers order",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-PAY-DUPLICATE",
+    "title": "API rejects paying a paid order again without another wallet debit",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-RECEIPT-EARLY",
+    "title": "API rejects receipt confirmation before delivery",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-SHIP-DUPLICATE",
+    "title": "API rejects a repeated seller shipment announcement",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-WH-MISMATCH-EMPTY",
+    "title": "Warehouse mismatch inspection requires notes before saving",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-WH-PACK-EARLY",
+    "title": "Warehouse API refuses packing before inspection passes",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-WH-SHIP-EMPTY",
+    "title": "Warehouse cannot ship without carrier and tracking code",
+    "classification": "UI + API verification",
+    "phase": "additional-cases",
+    "fixtureSetup": "Separate run-owned API fixture after the completed main UI flow"
+  },
+  {
+    "id": "A-ADMIN-OVERVIEW",
+    "title": "Android Admin opens overview and reads backend data",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADMIN-FLAGS",
+    "title": "Android Admin opens flags and reads backend data",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADMIN-DISPUTES",
+    "title": "Android Admin opens disputes and reads backend data",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADMIN-REPORT",
+    "title": "Android Admin opens weekly report and reads backend data",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADMIN-ACCOUNTS",
+    "title": "Android Admin opens accounts and reads backend data",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADDR-EMPTY",
+    "title": "Android address form rejects empty required fields",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADDR-CREATE",
+    "title": "Buyer adds an independent second address through Android",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADDR-EDIT",
+    "title": "Buyer edits only the second address through Android",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADDR-DEFAULT",
+    "title": "Buyer sets exactly one default address through Android",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADDR-OWNERSHIP",
+    "title": "Other bidder API cannot edit the buyers address",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-ADDR-DELETE",
+    "title": "Buyer deletes the second address while retaining the order address",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-REPORT",
+    "title": "Bidder reports the exact admin fixture through UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-MOD-pause",
+    "title": "Admin pause exact report through UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-MOD-verify",
+    "title": "Admin verify exact report through UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-MOD-safe",
+    "title": "Admin safe exact report through UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-BLOCKED",
+    "title": "Restricted bidder sees JOIN_BLOCKED reason through UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-DISPUTE",
+    "title": "Buyer opens a dispute through Android UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-REFUND",
+    "title": "Admin refunds exact dispute through Android UI",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-REFUND-DUPLICATE",
+    "title": "API refuses resolving the refunded dispute twice; balance remains unchanged",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-KEEP-OPEN",
+    "title": "Buyer opens an independent keep-decision dispute through Android",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-KEEP-RESOLVE",
+    "title": "Android Admin keeps the transaction and releases payout without refunding buyer",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-RT-REFUND",
+    "title": "Logged-in Android buyer receives refund event from external Admin API actor",
+    "classification": "Android realtime observation + API actor",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-NOTIFY-READALL",
+    "title": "Android buyer marks persisted notifications read and unread count reaches zero",
+    "classification": "UI + API verification",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-RBAC-BIDDER",
+    "title": "BIDDER API cannot access another roles business endpoint",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-RBAC-SELLER",
+    "title": "SELLER API cannot access another roles business endpoint",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-RBAC-APPRAISER",
+    "title": "APPRAISER API cannot access another roles business endpoint",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  },
+  {
+    "id": "A-RBAC-WAREHOUSE",
+    "title": "WAREHOUSE API cannot access another roles business endpoint",
+    "classification": "API business assertion from authenticated Android session",
+    "phase": "additional-cases"
+  }
+]
