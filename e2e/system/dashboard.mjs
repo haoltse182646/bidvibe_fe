@@ -15,7 +15,15 @@ const configPath=path.join(here,'runner.local.json');
 if(!fs.existsSync(configPath))throw Error('Copy runner.local.example.json to runner.local.json and set the local paths.');
 const rawConfig=JSON.parse(fs.readFileSync(configPath,'utf8'));
 const config={...rawConfig};
-for(const key of ['frontendRoot','webRoot','backendRoot','credentialsFile','playwrightRoot'])config[key]=path.resolve(here,config[key]);
+const pathSettings=['frontendRoot','webRoot','backendRoot','credentialsFile','playwrightRoot'];
+for(const key of pathSettings){
+ if(typeof config[key]!=='string'||!config[key].trim())throw Error(`Missing or empty "${key}" in ${configPath}. Set it to a valid path.`);
+ config[key]=path.resolve(here,config[key]);
+}
+for(const key of ['frontendRoot','webRoot','backendRoot','playwrightRoot']){
+ if(!fs.existsSync(config[key])||!fs.statSync(config[key]).isDirectory())throw Error(`"${key}" does not point to an existing directory: ${config[key]}`);
+}
+if(!fs.existsSync(config.credentialsFile)||!fs.statSync(config.credentialsFile).isFile())throw Error(`"credentialsFile" does not point to an existing file: ${config.credentialsFile}`);
 config.dashboardPort??=8890;config.webPort??=5186;config.webURL=rawConfig.webURL||`http://127.0.0.1:${config.webPort}`;
 const credentials=JSON.parse(fs.readFileSync(config.credentialsFile,'utf8'));
 const api=String(credentials.BIDVIBE_API_BASE_URL||'').replace(/\/+$/,'');

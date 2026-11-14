@@ -50,17 +50,18 @@ Tại gốc FE:
 
 ```cmd
 copy e2e\system\runner.local.example.json e2e\system\runner.local.json
+git clone https://github.com/haoltse182646/bidvibe-web.git ..\bidvibe-web
 ```
 
-Mở `runner.local.json` bằng VS Code. Không gõ JSON vào terminal.
+Clone React repo một lần nếu chưa có tại thư mục anh em `bidvibe-web`; bỏ qua lệnh clone nếu repo đã tồn tại. Mở `runner.local.json` bằng VS Code. Không gõ JSON vào terminal.
 
 - `frontendRoot`: `../..` nếu bộ chạy nằm đúng trong `bidvibe_fe/e2e/system`.
-- `webRoot`: thư mục React `bidvibe-web` đã clone từ GitHub, ví dụ `C:/Users/haolu/Documents/reactjs/bidvibe-web`.
+- `webRoot`: `../../../bidvibe-web` nếu dùng repo anh em được clone bằng lệnh trên, hoặc đường dẫn hợp lệ khác tới repo React.
 - Mặc định bộ chạy mở React local tại `http://127.0.0.1:5186` từ source trong `webRoot`, gọi BE Render thật. Nếu cần kiểm tra bản React đã deploy, có thể thêm `webURL` trỏ đúng website React đó; khi ấy bộ chạy dùng URL này và không mở Vite. Link `bidvibe.netlify.app` trước đây là Flutter Web, cần phân biệt với website React. Commit source tham chiếu trên máy không tự chứng minh phiên bản đang deploy giống hệt source đó.
-- `backendRoot`: thư mục BE có dependency và `.env` nối đúng database mà API Render dùng. Bộ chạy chỉ dùng service kiểm soát thời gian cho phiên E2E; không cần mở toàn bộ BE bằng `npm run dev`.
+- `backendRoot`: `../../../bidvibe_be` nếu dùng repo BE anh em, hoặc đường dẫn tới thư mục BE đã cài dependencies và có `.env` local kết nối cùng database với API Render. Bộ chạy chỉ dùng service kiểm soát thời gian cho phiên E2E; không cần mở toàn bộ BE bằng `npm run dev`.
 - `credentialsFile`: mặc định `../playwright/runner/credentials.local.json`. Dùng lại sáu tài khoản kiểm thử; không đưa mật khẩu vào config mẫu.
-- `playwrightRoot`: mặc định `../playwright/runner`; dependency `@playwright/test` phải được cài ở đó.
-- `flutterCommand`: đường dẫn Flutter trên máy.
+- `playwrightRoot`: `../playwright/runner`; dependency `@playwright/test` phải được cài ở đó.
+- `flutterCommand`: `flutter` nếu Flutter có trong `PATH`, hoặc đường dẫn tuyệt đối tới Flutter executable trên máy.
 - `deviceId` và `launchEmulatorId`: mặc định `emulator-5554` và `Pixel_4a`.
 - `allowSharedDatabaseMutations`: đặt `true` trên database được phép tạo dữ liệu E2E.
 - `headed`: `true` để xem Chrome tự thao tác; `false` nếu cần chạy trình duyệt ẩn.

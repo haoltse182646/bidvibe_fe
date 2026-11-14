@@ -9,11 +9,11 @@ Bộ test thao tác trên **Flutter Web của bidvibe_fe** bằng Chrome, gọi 
 3. tests/: mã kịch bản theo thứ tự 01–16.
 4. Bằng chứng: JSON kết quả, JSON checkpoint, ảnh lỗi; báo cáo Playwright gốc chỉ giữ riêng trên máy.
 
-## Đưa vào project ở đâu?
+## Vị trí trong project
 
-Đặt thư mục bộ chạy tại `bidvibe_fe/e2e/playwright/`. Đặt báo cáo tại `bidvibe_fe/docs/testing/report/2026-10-31-playwright/`. Đây là hướng dẫn để Hào tự sao chép; bộ bàn giao chưa được chép vào source thật, chưa commit/push.
+Bộ chạy hiện nằm tại `bidvibe_fe/e2e/playwright/runner/`; chạy các lệnh npm từ thư mục này. Báo cáo tổng hợp được lưu riêng tại `bidvibe_fe/docs/testing/report/2026-10-31-playwright/`.
 
-Giữ package.json, package-lock.json, playwright.config.ts, tests/, support/, scripts/, assets/, README và hai file cấu hình example. Không commit node_modules/, reports/, private-run/ hoặc các file *.local.json chứa cấu hình/tài khoản. Các file example để trống thông tin đăng nhập được phép commit.
+Giữ package.json, package-lock.json, playwright.config.ts, tests/, support/, scripts/, assets/, README và hai file cấu hình example. Không commit node_modules/, reports/, private-run/ hoặc bất kỳ file `*.local.json` chứa cấu hình/tài khoản. Các file example để trống thông tin đăng nhập được phép commit.
 
 ## Cài đặt một lần
 
@@ -28,12 +28,12 @@ flutter build web --debug --no-web-resources-cdn
 
 Dùng debug để bắt lỗi assertion của Flutter. Đây là bản web build phục vụ kiểm thử tại máy, không cần deploy Netlify lần nữa. Khi sửa code FE, phải build lại để Playwright kiểm tra bản mới.
 
-Tại `e2e\playwright`:
+Tại `e2e\playwright\runner`:
 
 ```cmd
 npm ci
-copy runner.local.example.json runner.local.json
-copy credentials.local.example.json credentials.local.json
+if not exist runner.local.json copy runner.local.example.json runner.local.json
+if not exist credentials.local.json copy credentials.local.example.json credentials.local.json
 ```
 
 Điền sáu tài khoản vào credentials.local.json trên máy. Điền runner.local.json:
@@ -44,7 +44,7 @@ copy credentials.local.example.json credentials.local.json
 - BIDVIBE_API_URL: API đích; phải khớp URL được build trong FE và DB của .env BE.
 - BIDVIBE_ALLOW_SHARED_MUTATIONS: để `false` khi chỉ chạy đăng nhập; đổi thành chuỗi `"true"` khi chủ động chạy nghiệp vụ trên DB được cho phép.
 
-Các đường dẫn cấu hình được tính từ thư mục bộ chạy. Bản bộ chạy nằm ngoài project được cung cấp trong workspace đã có runner.local.json riêng trỏ đến bản build cô lập; file đó không nằm trong ZIP chia sẻ.
+Các đường dẫn cấu hình được tính từ `e2e\playwright\runner`. Nếu đã có file local thì không sao chép đè lên vì có thể chứa cấu hình/tài khoản đang dùng.
 
 ## Chạy trước lớp
 

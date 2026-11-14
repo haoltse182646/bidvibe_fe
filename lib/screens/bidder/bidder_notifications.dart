@@ -77,6 +77,7 @@ class BidderNotificationsScreen extends StatelessWidget {
                   ? null
                   : Theme.of(context).colorScheme.primaryContainer,
               child: ListTile(
+                key: ValueKey('notification-${item.id}'),
                 leading: Icon(_icon(item.type)),
                 title: Text(
                   item.title,

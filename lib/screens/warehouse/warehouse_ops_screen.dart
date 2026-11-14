@@ -125,6 +125,7 @@ class _WarehouseOpsScreenState extends State<WarehouseOpsScreen> {
                   final warehouse = _map(order['warehouse']);
                   return Card(
                     child: ListTile(
+                      key: ValueKey('warehouse-order-${order['id']}'),
                       onTap: () async {
                         await Navigator.of(context).push<void>(MaterialPageRoute(
                           builder: (_) => WarehouseOpsDetailScreen(orderId: '${order['id']}'),

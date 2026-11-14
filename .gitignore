@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/e2e/playwright/*.local.json
 
 # Symbolication related
 app.*.symbols

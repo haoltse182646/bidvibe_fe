@@ -1,10 +1,10 @@
 {
   "frontendRoot": "../..",
-  "webRoot": "C:/Users/haolu/Documents/reactjs/bidvibe-web",
-  "backendRoot": "C:/Users/haolu/Documents/flutter/bidvibe_be",
+  "webRoot": "../../../bidvibe-web",
+  "backendRoot": "../../../bidvibe_be",
   "credentialsFile": "../playwright/runner/credentials.local.json",
   "playwrightRoot": "../playwright/runner",
-  "flutterCommand": "C:/Users/haolu/develop/flutter/bin/flutter.bat",
+  "flutterCommand": "flutter",
   "deviceId": "emulator-5554",
   "launchEmulatorId": "Pixel_4a",
   "dashboardPort": 8890,

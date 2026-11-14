@@ -145,6 +145,7 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
           const Text('Dữ liệu từ máy chủ · Kéo xuống để cập nhật'),
           const SizedBox(height: 16),
           TextField(
+            key: const ValueKey('auction.search'),
             controller: _search,
             textInputAction: TextInputAction.search,
             onSubmitted: (_) {
@@ -197,6 +198,7 @@ class _BidderHomeScreenState extends State<BidderHomeScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            key: const ValueKey('auction.status-filter'),
             initialValue: _status,
             decoration: const InputDecoration(labelText: 'Danh sách phiên'),
             items: const [

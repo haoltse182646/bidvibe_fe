@@ -66,6 +66,7 @@ class _ShipmentCard extends StatelessWidget {
     }
 
     return Container(
+      key: ValueKey('shipment-${sh.id}'),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: sh.at == 1 ? AppColors.pendingFg : AppColors.border, width: sh.at == 1 ? 1.5 : 1)),
       child: Column(

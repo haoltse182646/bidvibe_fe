@@ -241,6 +241,19 @@ class _BidderWalletScreenState extends State<BidderWalletScreen>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
+          if (_loading)
+            const SizedBox.shrink(key: ValueKey('wallet.state.loading')),
+          if (_posting)
+            const SizedBox.shrink(key: ValueKey('wallet.state.posting')),
+          if (_loadingMore)
+            const SizedBox.shrink(key: ValueKey('wallet.state.loading-more')),
+          if (_uncertain)
+            const SizedBox.shrink(key: ValueKey('wallet.state.uncertain')),
+          if (_wallet == null)
+            const SizedBox.shrink(
+                key: ValueKey('wallet.state.missing-snapshot')),
+          if (_error != null)
+            const SizedBox.shrink(key: ValueKey('wallet.state.error')),
           Text('Ví của tôi', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),
           if (_loading || _posting) const LinearProgressIndicator(),
@@ -284,6 +297,7 @@ class _BidderWalletScreenState extends State<BidderWalletScreen>
           Form(
             key: _form,
             child: TextFormField(
+              key: const ValueKey('wallet.topup-amount'),
               controller: _amount,
               enabled: !locked,
               keyboardType: TextInputType.number,

@@ -154,6 +154,7 @@ class _OrderTile extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
+        key: ValueKey('order-${order.id}'),
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Container(
